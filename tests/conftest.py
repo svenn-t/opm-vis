@@ -1,4 +1,5 @@
 """ Shared fixtures locating the datasets in tests/data """
+import os
 from pathlib import Path
 
 import pytest
@@ -7,6 +8,22 @@ import pytest
 # filename prefixes rather than directories - every reader does glob(path + "*.EXT") - so the
 # case fixtures below deliberately return a prefix with no extension.
 _DATA_DIR = Path(__file__).parent / "data"
+
+# Qt refuses to start without a display, which a CI container has none of, so the GUI tests
+# are pointed at Qt's own headless platform plugin unless something has already chosen one.
+# Set before any PySide6 import, since Qt reads it when the application is created.
+if not os.environ.get("QT_QPA_PLATFORM") and not os.environ.get("DISPLAY"):
+    os.environ["QT_QPA_PLATFORM"] = "offscreen"
+
+# On a session that has both, the GUI asks for X11 because VTK cannot render into a Wayland
+# surface; the tests have to make the same choice or the 3D panel would fail here but work in
+# the application. Same function, so the two can never drift apart.
+try:
+    from opm_vis.gui.app import use_x11_for_vtk
+
+    use_x11_for_vtk()
+except ImportError:  # pragma: no cover - an install without the GUI extra
+    pass
 
 
 @pytest.fixture(scope="session")
