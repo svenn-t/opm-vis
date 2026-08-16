@@ -1,8 +1,9 @@
 """opm-vis-pv: plot a keyword on a grid slice with the PyVista backend"""
 from __future__ import annotations
 
+from contextlib import ExitStack
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import click
 
@@ -301,8 +302,24 @@ def _wells_slices(
     ),
 )
 @handle_errors
+def main(**params) -> None:
+    """
+    Plot --keyword on one or more grid slices with the PyVista backend, or animate it over
+    report steps with --animate.
+
+    PATHS are filename prefixes: the first is the main run, any further ones are restart runs.
+    Defaults to searching the working directory (./) if not given.
+
+    See the documentation for the full option reference with examples.
+    """
+    # Forwarded as a whole rather than parameter by parameter, so that an option added to the
+    # decorators above reaches run_pv - and every other caller of it, such as the GUI -
+    # without this shell having to be touched as well. See run_pv.
+    run_pv(**params)
+
+
 # pylint: disable=too-many-arguments,too-many-locals
-def main(
+def run_pv(
     paths: tuple[str, ...],
     keyword: str | None,
     grid_only: bool,
@@ -347,15 +364,40 @@ def main(
     glyph_every_n: int,
     glyph_factor: float | None,
     glyph_color: str,
-) -> None:
+    *,
+    plotter: Any = None,
+) -> GridPlotter:
     """
-    Plot --keyword on one or more grid slices with the PyVista backend, or animate it over
-    report steps with --animate.
+    Validate the options of one opm-vis-pv run and render, animate or save its scene
 
-    PATHS are filename prefixes: the first is the main run, any further ones are restart runs.
-    Defaults to searching the working directory (./) if not given.
+    Parameters
+    ----------
+    plotter : pv.Plotter | None, optional
+        Render window to draw into, by default None, which creates one of its own and closes
+        it once show() returns. Pass an embedding widget to render into a GUI: the scene is
+        then left on it rather than torn down, show() only re-renders it, and --window-size
+        is ignored.
 
-    See the documentation for the full option reference with examples.
+    Returns
+    -------
+    GridPlotter
+        The plotter holding the finished scene, so a caller that passed its own render window
+        can keep hold of it - to swap the report step or take a screenshot later without
+        rebuilding the grid mesh, which is the expensive part
+
+    Raises
+    ------
+    click.UsageError
+        If the options do not make sense together; the message is meant to be shown as is, on
+        a terminal or in a GUI's status bar alike.
+
+    Notes
+    -----
+    Every parameter other than plotter is one of opm-vis-pv's own options, named exactly after
+    it - see that command's --help for what each one does. Naming them identically is what
+    lets main forward its parameters as a whole, and so what lets an option added to the
+    command reach here without main being touched; tests/test_gui_parity.py checks that the
+    two have not drifted apart.
     """
     keyword = resolve_keyword(keyword, grid_only)
     if grid_only and animate:
@@ -407,14 +449,22 @@ def main(
 
     grid_kwargs = grid_color_kwargs(grid_color)
 
-    with GridPlotter(
+    grid_plotter = GridPlotter(
         resolve_paths(paths), off_screen=save is not None, window_size=window_size,
-        z_scale=z_scale,
-    ) as plotter:
+        z_scale=z_scale, plotter=plotter,
+    )
+
+    # A render window of our own is closed once the scene has been shown or saved, as the
+    # context manager has always done. An injected one is the caller's to dispose of, and
+    # closing it would wipe the scene this call just built on it, so it is left alone.
+    with ExitStack() as stack:
+        if plotter is None:
+            stack.enter_context(grid_plotter)
+
         calc_end = None
         if calc_slice is not None:
             assert calc_slice_dim is not None and calc_slice_ind is not None
-            n_slice = slice_dimension_size(plotter.grid.egrid, calc_slice_dim)
+            n_slice = slice_dimension_size(grid_plotter.grid.egrid, calc_slice_dim)
             _, calc_end = resolve_calc_range(calc_slice_ind, n_slice, calc_count)
 
         # Set below, only reachable when threshold_value is not None (--threshold and slices
@@ -426,7 +476,7 @@ def main(
                 # --calculator requires exactly one of -i/-j/-k (see resolve_calculator), so at
                 # most one iteration here ever matches calc_slice.
                 is_calc_slice = calc_slice is not None and (slice_dim, slice_index) == calc_slice
-                plotter.add_slice(
+                grid_plotter.add_slice(
                     slice_dim,
                     slice_index,
                     quads=quads,
@@ -452,8 +502,8 @@ def main(
                 # needs to know which report step to read keyword at before it can decide
                 # which cells pass the threshold at all; reused below instead of being
                 # resolved twice.
-                threshold_rstep = _resolve_actual_rstep(plotter, keyword, rstep_value)
-                plotter.add_threshold(
+                threshold_rstep = _resolve_actual_rstep(grid_plotter, keyword, rstep_value)
+                grid_plotter.add_threshold(
                     keyword,
                     threshold_rstep,
                     threshold_value,
@@ -464,7 +514,7 @@ def main(
                 added_subset = True
 
             if clip is not None:
-                plotter.add_clip(
+                grid_plotter.add_clip(
                     clip,
                     origin=clip_origin,
                     invert=clip_invert,
@@ -476,17 +526,17 @@ def main(
                 added_subset = True
 
             if not added_subset:
-                plotter.add_grid(opacity=opacity, show_edges=show_edges, **grid_kwargs)
+                grid_plotter.add_grid(opacity=opacity, show_edges=show_edges, **grid_kwargs)
         if wireframe:
-            plotter.add_wireframe()
+            grid_plotter.add_wireframe()
 
         if view == "2d":
-            plotter.view_2d(slices[0][0])
+            grid_plotter.view_2d(slices[0][0])
         else:
-            plotter.view_3d(azimuth=azimuth, elevation=elevation)
+            grid_plotter.view_3d(azimuth=azimuth, elevation=elevation)
 
         if axes:
-            plotter.show_axes_grid()
+            grid_plotter.show_axes_grid()
 
         if animate:
             # grid_only+animate already raised above, so resolve_keyword guarantees a keyword
@@ -494,7 +544,7 @@ def main(
             # None, never a bare int
             assert keyword is not None
             assert rstep_value is None or isinstance(rstep_value, tuple)
-            steps = resolve_animate_rsteps(plotter.case.report.report_steps(), rstep_value)
+            steps = resolve_animate_rsteps(grid_plotter.case.report.report_steps(), rstep_value)
 
             if glyphs is not None:
                 x_kw, y_kw, z_kw = glyphs
@@ -506,7 +556,7 @@ def main(
                         # Computed across every animated step, so arrow length stays
                         # comparable from frame to frame instead of each one rescaling to its
                         # own peak. Computed per slice, so each is scaled to its own vectors.
-                        factor = plotter.global_glyph_factor(
+                        factor = grid_plotter.global_glyph_factor(
                             x_kw,
                             y_kw,
                             z_kw,
@@ -516,7 +566,7 @@ def main(
                             quads=quads,
                             scale=glyph_scale,
                         )
-                    plotter.add_glyphs(
+                    grid_plotter.add_glyphs(
                         x_kw,
                         y_kw,
                         z_kw,
@@ -542,7 +592,7 @@ def main(
                     calc_kind=calc_kind,
                     calc_end=calc_end,
                 )
-            plotter.animate(
+            grid_plotter.animate(
                 keyword,
                 output,
                 rsteps=steps,
@@ -561,7 +611,7 @@ def main(
                 calc_kind=calc_kind,
                 calc_count=calc_count,
             )
-            return
+            return grid_plotter
 
         # Reached only when not animate (the branch above returns), so --rstep was parsed
         # with animate=False (see parse_rstep): a bare int or None, never a range
@@ -573,7 +623,7 @@ def main(
             actual_rstep = (
                 rstep_value
                 if rstep_value is not None
-                else plotter.case.report.report_steps()[0]
+                else grid_plotter.case.report.report_steps()[0]
             )
         elif threshold_value is not None:
             assert threshold_rstep is not None  # resolved above, before add_threshold
@@ -581,13 +631,13 @@ def main(
         else:
             # Not grid_only, so resolve_keyword guarantees a keyword here
             assert keyword is not None
-            actual_rstep = _resolve_actual_rstep(plotter, keyword, rstep_value)
+            actual_rstep = _resolve_actual_rstep(grid_plotter, keyword, rstep_value)
 
-        plotter.rstep = actual_rstep
+        grid_plotter.rstep = actual_rstep
         if not grid_only:
             # keyword is required unless grid_only (checked by resolve_keyword)
             assert keyword is not None
-            plotter.set_scalars(
+            grid_plotter.set_scalars(
                 keyword,
                 actual_rstep,
                 clim=clim,
@@ -602,12 +652,12 @@ def main(
                 calc_count=calc_count,
             )
         if wells or all_wells:
-            plotter.add_wells(actual_rstep, slices=_wells_slices(all_wells, slices))
+            grid_plotter.add_wells(actual_rstep, slices=_wells_slices(all_wells, slices))
         if glyphs is not None:
             x_kw, y_kw, z_kw = glyphs
             # See the animate branch above for why slices or [(None, None)]
             for slice_dim, slice_index in slices or [(None, None)]:
-                plotter.add_glyphs(
+                grid_plotter.add_glyphs(
                     x_kw,
                     y_kw,
                     z_kw,
@@ -621,10 +671,10 @@ def main(
                     **_glyph_color_kwargs(glyph_color),
                 )
         if not no_title:
-            plotter.set_title()
+            grid_plotter.set_title()
 
         if save is None:
-            plotter.show()
+            grid_plotter.show()
         else:
             keyword_tag = keyword or "GRID"
             if threshold_value is not None:
@@ -641,7 +691,9 @@ def main(
                 calc_kind=calc_kind,
                 calc_end=calc_end,
             )
-            plotter.screenshot(output)
+            grid_plotter.screenshot(output)
+
+    return grid_plotter
 
 
 if __name__ == "__main__":

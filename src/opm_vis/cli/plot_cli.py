@@ -59,8 +59,25 @@ from opm_vis.utils.grid import slice_dimension_size
 @click.option("--no-colorbar", is_flag=True, default=False, help="Hide the colorbar.")
 @SHOW_EDGES_OPTION
 @handle_errors
+def main(**params) -> None:
+    """
+    Plot --keyword on one grid slice with the Matplotlib backend, or animate it over report
+    steps with --animate.
+
+    PATHS are filename prefixes: the first is the main run, any further ones are restart runs.
+    Defaults to searching the working directory (./) if not given.
+
+    This is the alternative backend, with fewer options and less development effort than
+    opm-vis-pv (PyVista). See the documentation for the full option reference with examples.
+    """
+    # Forwarded as a whole rather than parameter by parameter, so that an option added to the
+    # decorators above reaches run_mpl - and every other caller of it, such as the GUI -
+    # without this shell having to be touched as well. See run_mpl.
+    run_mpl(**params)
+
+
 # pylint: disable=too-many-arguments,too-many-locals
-def main(
+def run_mpl(
     paths: tuple[str, ...],
     keyword: str | None,
     grid_only: bool,
@@ -82,16 +99,38 @@ def main(
     view: str,
     no_colorbar: bool,
     show_edges: bool,
-) -> None:
+    *,
+    fig: Any = None,
+) -> SlicePoly2DCollection | SlicePoly3DCollection:
     """
-    Plot --keyword on one grid slice with the Matplotlib backend, or animate it over report
-    steps with --animate.
+    Validate the options of one opm-vis-mpl run and draw, animate or save its slice
 
-    PATHS are filename prefixes: the first is the main run, any further ones are restart runs.
-    Defaults to searching the working directory (./) if not given.
+    Parameters
+    ----------
+    fig : Figure | None, optional
+        Figure to draw into, by default None, which creates one of its own. Passed straight to
+        the collection class; give an embedding canvas's figure to plot into a GUI, where
+        show() only redraws that canvas rather than opening a window of its own.
 
-    This is the alternative backend, with fewer options and less development effort than
-    opm-vis-pv (PyVista). See the documentation for the full option reference with examples.
+    Returns
+    -------
+    SlicePoly2DCollection | SlicePoly3DCollection
+        The collection that was drawn, so a caller that passed its own figure can keep hold of
+        it - to save it later, say, without reading the case again
+
+    Raises
+    ------
+    click.UsageError
+        If the options do not make sense together; the message is meant to be shown as is, on
+        a terminal or in a GUI's status bar alike.
+
+    Notes
+    -----
+    Every parameter other than fig is one of opm-vis-mpl's own options, named exactly after
+    it - see that command's --help for what each one does. Naming them identically is what
+    lets main forward its parameters as a whole, and so what lets an option added to the
+    command reach here without main being touched; tests/test_gui_parity.py checks that the
+    two have not drifted apart.
     """
     keyword = resolve_keyword(keyword, grid_only)
     if grid_only and animate:
@@ -129,13 +168,23 @@ def main(
 
     resolved_paths = resolve_paths(paths)
     surface = calc_kind == "surface"
+    coll: SlicePoly2DCollection | SlicePoly3DCollection
     if view == "3d":
         coll = SlicePoly3DCollection(
-            resolved_paths, [(slice_dim, slice_index)], calc_count=calc_count, surface=surface
+            resolved_paths,
+            [(slice_dim, slice_index)],
+            calc_count=calc_count,
+            surface=surface,
+            fig=fig,
         )
     else:
         coll = SlicePoly2DCollection(
-            resolved_paths, slice_dim, slice_index, calc_count=calc_count, surface=surface
+            resolved_paths,
+            slice_dim,
+            slice_index,
+            calc_count=calc_count,
+            surface=surface,
+            fig=fig,
         )
 
     calc_end = None
@@ -178,7 +227,7 @@ def main(
                 ),
                 fps=fps,
             )
-        return
+        return coll
 
     if grid_only:
         # Time-invariant: unlike a keyword's own values, the bare grid has no report step to
@@ -191,7 +240,7 @@ def main(
             coll.save_grid_plot(
                 Path(save) if save else default_output_name("GRID", slices, ext="png")
             )
-        return
+        return coll
 
     # Reached only when not animate (the branch above returns), so --rstep was parsed with
     # animate=False (see parse_rstep): a bare int or None, never a range
@@ -236,6 +285,8 @@ def main(
                 calc_end=calc_end,
             )
         )
+
+    return coll
 
 
 if __name__ == "__main__":

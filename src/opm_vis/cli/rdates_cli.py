@@ -45,7 +45,7 @@ from opm_vis.utils.timeline import TIMELINE_FORMATS
     help="Write the output to a file instead of printing it.",
 )
 @handle_errors
-def main(paths: tuple[str, ...], rstep: str | None, fmt: str, save: str | None) -> None:
+def main(**params) -> None:
     """
     List the report steps in a case with their dates and the time since the simulation started.
 
@@ -58,14 +58,46 @@ def main(paths: tuple[str, ...], rstep: str | None, fmt: str, save: str | None) 
 
     See the documentation for the full option reference with examples.
     """
-    report = Report(resolve_paths(paths))
-    rsteps = resolve_rstep_selection(report.report_steps(), rstep)
-    output = report.format_timeline(fmt, rsteps)
+    # Forwarded as a whole rather than parameter by parameter, so that an option added to the
+    # decorators above reaches run_rdates - and every other caller of it, such as the GUI -
+    # without this shell having to be touched as well. See run_rdates.
+    save = params.pop("save")
+    output = run_rdates(**params)
 
     if save is None:
         click.echo(output)
     else:
         Path(save).write_text(output + "\n", encoding="utf-8")
+
+
+def run_rdates(paths: tuple[str, ...], rstep: str | None, fmt: str) -> str:
+    """
+    Render a case's report step timeline
+
+    Parameters
+    ----------
+    paths : tuple[str, ...]
+        Value of the PATHS argument
+    rstep : str | None
+        Value of --rstep: a report step or a START:END[:STEP] range, or None for all of them
+    fmt : str
+        Value of --format; one of TIMELINE_FORMATS
+
+    Returns
+    -------
+    str
+        The timeline, rendered in fmt
+
+    Notes
+    -----
+    Takes --save's siblings but not --save itself: what to do with the text is the caller's
+    business, since a GUI shows it in a widget rather than writing it anywhere. Every other
+    parameter is named exactly after the click option it comes from, which is what lets main
+    forward its parameters as a whole - see the signature-parity test.
+    """
+    report = Report(resolve_paths(paths))
+    rsteps = resolve_rstep_selection(report.report_steps(), rstep)
+    return report.format_timeline(fmt, rsteps)
 
 
 if __name__ == "__main__":

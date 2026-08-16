@@ -270,29 +270,7 @@ def _parse_xlim(raw: tuple[str, str] | None, x_axis: str) -> tuple[Any, Any] | N
 )
 @SAVE_OPTION
 @handle_errors
-# pylint: disable=too-many-arguments,too-many-locals
-def main(
-    paths: tuple[str, ...],
-    keywords: tuple[str, ...],
-    list_keywords: bool,
-    compare: bool,
-    x_axis: str,
-    subplots: bool,
-    layout: tuple[int, int] | None,
-    log_y: bool,
-    xlim: tuple[str, str] | None,
-    ylim: tuple[float, float] | None,
-    title: str | None,
-    figsize: tuple[float, float] | None,
-    grid: bool,
-    legend: bool,
-    linewidth: float | None,
-    linestyle: tuple[str, ...],
-    marker: tuple[str, ...],
-    color: tuple[str, ...],
-    export: str | None,
-    save: str | None,
-) -> None:
+def main(**params) -> None:
     """
     Plot summary vectors - the time series in a case's .SMSPEC/.UNSMRY files - such as FOPR,
     FGOR or WBHP:PROD.
@@ -309,7 +287,16 @@ def main(
 
     See the documentation for the full option reference with examples.
     """
-    resolved_paths = resolve_paths(paths)
+    # Popped rather than passed on: --list-keywords is a mode this command line is in rather
+    # than a property of a plot; --export can print to stdout, which only a command line has;
+    # and --save is left alongside it so that the export still comes out before show() blocks
+    # on the plot window, as it did when both lived in one function. Everything else is
+    # forwarded as a whole, so an option added to the decorators above reaches run_sum - and
+    # every other caller of it, such as the GUI - without this shell having to be touched as
+    # well. See run_sum and the signature-parity test.
+    list_keywords = params.pop("list_keywords")
+    export = params.pop("export")
+    save = params.pop("save")
 
     if list_keywords:
         given = _options_given(click.get_current_context(), frozenset({"list_keywords"}))
@@ -318,9 +305,86 @@ def main(
                 "--list-keywords only prints the case's summary vectors; drop "
                 f"{', '.join(given)} to list them, or drop --list-keywords to plot."
             )
-        for name in sorted(SummaryReader(resolved_paths).available_keywords()):
+        for name in sorted(SummaryReader(resolve_paths(params["paths"])).available_keywords()):
             click.echo(name)
         return
+
+    plot, selected = run_sum(**params)
+
+    if export is not None:
+        csv_text = plot.export_csv(selected, x_axis=params["x_axis"])
+        if export:
+            Path(export).write_text(csv_text + "\n", encoding="utf-8")
+        else:
+            click.echo(csv_text)
+
+    if save is None:
+        plot.show()
+    else:
+        plot.save_plot(
+            Path(save)
+            if save
+            else default_summary_output_name(
+                selected, x_axis=params["x_axis"], compare=params["compare"]
+            )
+        )
+
+
+# pylint: disable=too-many-arguments,too-many-locals
+def run_sum(
+    paths: tuple[str, ...],
+    keywords: tuple[str, ...],
+    compare: bool,
+    x_axis: str,
+    subplots: bool,
+    layout: tuple[int, int] | None,
+    log_y: bool,
+    xlim: tuple[str, str] | None,
+    ylim: tuple[float, float] | None,
+    title: str | None,
+    figsize: tuple[float, float] | None,
+    grid: bool,
+    legend: bool,
+    linewidth: float | None,
+    linestyle: tuple[str, ...],
+    marker: tuple[str, ...],
+    color: tuple[str, ...],
+    *,
+    fig: Any = None,
+) -> tuple[SummaryPlot, list[str]]:
+    """
+    Validate the options of one opm-vis-sum run and draw its curves
+
+    Parameters
+    ----------
+    fig : Figure | None, optional
+        Figure to draw into, by default None, which creates one of its own. Passed straight to
+        SummaryPlot; give an embedding canvas's figure to plot into a GUI, where show() only
+        redraws that canvas rather than opening a window of its own.
+
+    Returns
+    -------
+    tuple[SummaryPlot, list[str]]
+        The plot and the keywords it drew - --keyword's wildcards expanded against the cases.
+        Both are returned so a caller that passed its own figure can keep hold of them, to
+        export the plotted data later without reading the cases again.
+
+    Raises
+    ------
+    click.UsageError
+        If the options do not make sense together; the message is meant to be shown as is, on
+        a terminal or in a GUI's status bar alike.
+
+    Notes
+    -----
+    Every parameter other than fig is one of opm-vis-sum's own options, named exactly after
+    it - see that command's --help for what each one does. Naming them identically is what
+    lets main forward its parameters as a whole, and so what lets an option added to the
+    command reach here without main being touched; tests/test_gui_parity.py checks that the
+    two have not drifted apart. --list-keywords, --export and --save are the exceptions main
+    keeps to itself; see its own comment for why.
+    """
+    resolved_paths = resolve_paths(paths)
 
     # Everything that can be checked without opening a file is checked before one is opened
     if not keywords:
@@ -345,7 +409,7 @@ def main(
     # Keywords are resolved against the plot's own cases rather than a reader of their own, so a
     # pattern under --compare can match a vector any of them has; --layout, --linestyle,
     # --marker and --color are then checked against however many that turned out to be.
-    plot = SummaryPlot(resolved_paths, compare=compare, figsize=figsize)
+    plot = SummaryPlot(resolved_paths, compare=compare, figsize=figsize, fig=fig)
     selected = resolve_summary_keywords(keywords, plot.available_keywords())
     layout_shape = resolve_subplot_layout(layout, subplots, len(selected))
 
@@ -360,13 +424,6 @@ def main(
                 f"--linestyle none needs --marker as well for {keyword}, or nothing would be "
                 "drawn; pass --marker to plot markers instead of a line."
             )
-
-    if export is not None:
-        csv_text = plot.export_csv(selected, x_axis=x_axis)
-        if export:
-            Path(export).write_text(csv_text + "\n", encoding="utf-8")
-        else:
-            click.echo(csv_text)
 
     plot.plot(
         selected,
@@ -385,14 +442,7 @@ def main(
         color=color,
     )
 
-    if save is None:
-        plot.show()
-    else:
-        plot.save_plot(
-            Path(save)
-            if save
-            else default_summary_output_name(selected, x_axis=x_axis, compare=compare)
-        )
+    return plot, selected
 
 
 if __name__ == "__main__":
