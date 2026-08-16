@@ -44,6 +44,8 @@ Features
 - **Command-line tools.** ``opm-vis-pv`` and ``opm-vis-mpl`` plot or animate a case's grid,
   ``opm-vis-sum`` plots its summary vectors, and ``opm-vis-rdates`` lists its report dates,
   without writing any Python.
+- **Graphical interface.** ``opm-vis-gui`` puts all four of them in one window, over a shared
+  case, and shows the command line that reproduces whatever it is currently set to.
 
 Install
 -------
@@ -52,6 +54,7 @@ Install
 
    pip install -e .                 # Matplotlib backend only
    pip install -e ".[pyvista]"      # adds the PyVista/VTK backend
+   pip install -e ".[gui]"          # adds opm-vis-gui (includes the PyVista backend)
 
 .. toctree::
    :maxdepth: 2
@@ -59,4 +62,5 @@ Install
 
    examples
    cli
+   gui
    api

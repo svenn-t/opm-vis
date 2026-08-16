@@ -6,6 +6,7 @@ Visualization tools for OPM simulation results.
 ```bash
 pip install -e .                 # Matplotlib backend only
 pip install -e ".[pyvista]"      # adds the PyVista/VTK backend
+pip install -e ".[gui]"          # adds opm-vis-gui (includes the PyVista backend)
 ```
 
 ## Documentation
@@ -32,6 +33,18 @@ List the case's report steps with their dates and the time since the simulation 
 ```bash
 opm-vis-rdates tests/data/SPE1CASE1
 ```
+
+## GUI
+
+All four programs in one window, over a shared case:
+
+```bash
+opm-vis-gui tests/data/SPE1CASE1
+```
+
+Every control is generated from the command line programs' own options, so the window keeps up
+with them on its own. Each tab shows the command line that reproduces whatever it is set to, so
+exploring in the window and scripting from the terminal stay one and the same thing.
 
 ## API
 
