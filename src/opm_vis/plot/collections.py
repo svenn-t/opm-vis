@@ -99,6 +99,7 @@ class _SlicePolyCollection:
         fig: Figure,
         ax_: Axes,
         slice_coll: list[SlicePoly3D] | list[SlicePoly2D],
+        owns_fig: bool = True,
     ) -> None:
         """
         Initialize class by setting up figure and instantiate helper classes.
@@ -114,12 +115,18 @@ class _SlicePolyCollection:
             Axes insert slices in
         silce_coll : list
             List of SlicePoly3D/SlicePoly2D objects to use in plotting
+        owns_fig : bool, optional
+            Whether this object owns fig's lifetime, by default True. False when the figure
+            came from an embedding canvas (see the subclasses' fig argument): show() then
+            leaves displaying it to whoever owns it, and the save methods stop short of
+            closing a figure still on screen.
         """
         # Internalize input
         self.fig = fig
         self.ax_ = ax_
         self.slice_coll = slice_coll
         self.paths = paths
+        self._owns_fig = owns_fig
 
         # Instantiate Report class
         self.report = Report(paths)
@@ -579,7 +586,18 @@ class _SlicePolyCollection:
         return polyc_dict
 
     def show(self) -> None:
-        """Show figure on screen"""
+        """
+        Show figure on screen
+
+        Notes
+        -----
+        A figure this object does not own is already on screen in its canvas, so this only
+        asks that canvas to redraw - see the owns_fig argument.
+        """
+        if not self._owns_fig:
+            self.fig.canvas.draw_idle()
+            return
+
         plt.show()
         plt.close("all")
 
@@ -611,7 +629,7 @@ class _SlicePolyCollection:
 
         # Save file
         self.fig.savefig(filename)
-        plt.close("all")
+        self._close_if_owned()
 
     def save_grid_plot(
         self, filename: str | Path | None = None, file_format: str = "png"
@@ -633,7 +651,7 @@ class _SlicePolyCollection:
 
         # Save file
         self.fig.savefig(filename)
-        plt.close("all")
+        self._close_if_owned()
 
     def save_gif(self, filename: str | Path | None = None, fps: int = 3) -> None:
         """
@@ -663,6 +681,19 @@ class _SlicePolyCollection:
 
         # Save gif
         self.anim.save(filename, writer=animation.PillowWriter(fps=fps))
+
+    def _close_if_owned(self) -> None:
+        """
+        Close every figure, unless this one belongs to an embedding canvas
+
+        Notes
+        -----
+        Saving is a terminal action for a command line run, so the figures are closed to free
+        them. A figure passed in from a canvas is still on screen afterwards, though, and
+        closing it would tear that canvas down - see the owns_fig argument.
+        """
+        if self._owns_fig:
+            plt.close("all")
 
     def _slice_info(self) -> str:
         """
@@ -723,6 +754,7 @@ class SlicePoly3DCollection(_SlicePolyCollection):
         slice_info: list[tuple[str, int]],
         calc_count: int | None = None,
         surface: bool = False,
+        fig: Figure | None = None,
     ) -> None:
         """
         Initialize class by setting up figure/axes.
@@ -741,6 +773,11 @@ class SlicePoly3DCollection(_SlicePolyCollection):
         surface : bool, optional
             --calculator surface, by default False. See SlicePoly3D/_GridSlice for what this
             changes about a slice's own geometry/active cells.
+        fig : Figure | None, optional
+            Figure to draw into, by default None, which creates one of its own. Pass the
+            figure of an embedding canvas to plot into a GUI instead of a pyplot window; it is
+            cleared first, so the same canvas can be replotted, and is left open by show() and
+            the save methods.
         """
         # Generate collection of slices
         slice_coll = [
@@ -748,12 +785,16 @@ class SlicePoly3DCollection(_SlicePolyCollection):
         ]
 
         # Setup matplotlib figure
-        fig = plt.figure()
+        owns_fig = fig is None
+        if fig is None:
+            fig = plt.figure()
+        else:
+            fig.clear()
         ax_ = fig.add_subplot(projection="3d")
         ax_.view_init(elev=30, azim=60)
 
         # Init parent class
-        super().__init__(paths, fig, ax_, slice_coll)
+        super().__init__(paths, fig, ax_, slice_coll, owns_fig)
 
         # Set limits first, since set_labels needs them to decide which axes go to km
         self.set_lims()
@@ -818,6 +859,7 @@ class SlicePoly2DCollection(_SlicePolyCollection):
         slice_ind: int,
         calc_count: int | None = None,
         surface: bool = False,
+        fig: Figure | None = None,
     ) -> None:
         """
         Initialize class by setting up figure/axes.
@@ -837,16 +879,23 @@ class SlicePoly2DCollection(_SlicePolyCollection):
         surface : bool, optional
             --calculator surface, by default False. See SlicePoly2D/_GridSlice for what this
             changes about the slice's own geometry/active cells.
+        fig : Figure | None, optional
+            Figure to draw into, by default None, which creates one of its own. See
+            SlicePoly3DCollection for what passing an embedding canvas's figure changes.
         """
         # Generate 2D slice and put in a list to conform with parent class methods
         slice_coll = [SlicePoly2D(paths, slice_dim, slice_ind, calc_count, surface)]
 
         # Setup matplotlib figure
-        fig = plt.figure()
+        owns_fig = fig is None
+        if fig is None:
+            fig = plt.figure()
+        else:
+            fig.clear()
         ax_ = fig.add_subplot()
 
         # Init parent class
-        super().__init__(paths, fig, ax_, slice_coll)
+        super().__init__(paths, fig, ax_, slice_coll, owns_fig)
 
         # Set limits first, since set_labels needs them to decide which axes go to km
         self.set_lims()

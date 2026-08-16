@@ -346,6 +346,7 @@ class SummaryPlot:
         *,
         compare: bool = False,
         figsize: tuple[float, float] | None = None,
+        fig: Figure | None = None,
     ) -> None:
         """
         Init. class by opening the summary files of every case to plot
@@ -360,6 +361,12 @@ class SummaryPlot:
         figsize : tuple[float, float] | None, optional
             Figure size in inches, by default None, which keeps Matplotlib's own default for a
             single axes and scales with the grid for several (see default_figsize)
+        fig : Figure | None, optional
+            Figure to draw into, by default None, which creates one of its own in plot(). Pass
+            the figure of an embedding canvas to plot into a GUI instead of a pyplot window;
+            it is cleared on every plot() call, so the same canvas can be replotted, and is
+            left open by show() and save_plot(). figsize is then the canvas's to decide and is
+            ignored.
 
         Raises
         ------
@@ -397,7 +404,8 @@ class SummaryPlot:
 
         self.case_labels = unique_case_labels(self.readers)
 
-        self.fig: Figure | None = None
+        self.fig: Figure | None = fig
+        self._owns_fig = fig is None
         self.axes: list[Axes] = []
         self.axes_keywords: list[list[str]] = []
         self.x_axis = "date"
@@ -532,14 +540,23 @@ class SummaryPlot:
 
         # constrained layout rather than autofmt_xdate(), which fights it: date tick labels and
         # a grid of subplots both need the spacing solved for them.
-        self.fig, grid = plt.subplots(
-            rows,
-            cols,
-            sharex=True,
-            squeeze=False,
-            figsize=figsize,
-            layout="constrained",
-        )
+        if self._owns_fig:
+            self.fig, grid = plt.subplots(
+                rows,
+                cols,
+                sharex=True,
+                squeeze=False,
+                figsize=figsize,
+                layout="constrained",
+            )
+        else:
+            # An embedding canvas owns its figure, so its axes are rebuilt on it rather than a
+            # new figure being made: plot() can be called again on the same canvas. Its size is
+            # the canvas's own, so figsize is left out of it.
+            assert self.fig is not None  # set in __init__ whenever _owns_fig is False
+            self.fig.clear()
+            self.fig.set_layout_engine("constrained")
+            grid = self.fig.subplots(rows, cols, sharex=True, squeeze=False)
 
         flat = list(grid.flat)
         self.axes = flat[: len(self.axes_keywords)]
@@ -930,7 +947,19 @@ class SummaryPlot:
                 ax_.grid(False)
 
     def show(self) -> None:
-        """Show figure on screen"""
+        """
+        Show figure on screen
+
+        Notes
+        -----
+        A figure this object does not own is already on screen in its canvas, so this only
+        asks that canvas to redraw - see the fig argument.
+        """
+        if not self._owns_fig:
+            assert self.fig is not None  # set in __init__ whenever _owns_fig is False
+            self.fig.canvas.draw_idle()
+            return
+
         plt.show()
         plt.close("all")
 
@@ -959,7 +988,12 @@ class SummaryPlot:
             filename = f"{self.paths[0]}{self._keyword_tag()}.{file_format}"
 
         self.fig.savefig(filename)
-        plt.close("all")
+
+        # Saving is terminal for a command line run, so the figures are freed - but a figure
+        # from an embedding canvas is still on screen, and closing it would tear that canvas
+        # down. See the fig argument.
+        if self._owns_fig:
+            plt.close("all")
 
     def _keyword_tag(self) -> str:
         """

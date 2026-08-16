@@ -135,6 +135,7 @@ class GridPlotter:
         window_size: tuple[int, int] | None = None,
         z_scale: float = 1.0,
         weld: bool = True,
+        plotter: pv.Plotter | None = None,
     ) -> None:
         """
         Initialize by setting up the render window and instantiating helper classes
@@ -154,6 +155,12 @@ class GridPlotter:
             thick, so a value above 1 is usually needed to see layering.
         weld : bool, optional
             Merge coincident grid corner points, by default True. See GridMesh.
+        plotter : pv.Plotter | None, optional
+            Render window to draw into, by default None, which creates one of its own. Pass an
+            embedding widget - pyvistaqt.QtInteractor is a pv.Plotter subclass - to render into
+            a GUI instead of a standalone window. off_screen and window_size are then that
+            widget's own business and are ignored; show() only re-renders it, and close()
+            leaves the widget itself alive for its owner to dispose of.
         """
         # Internalize input
         self.paths = paths
@@ -166,7 +173,8 @@ class GridPlotter:
         # Set up the render window. pv.Plotter wants window_size as a list rather than a
         # tuple; a tuple is kept in our own signature since it is the immutable, idiomatic
         # choice for a fixed pair of dimensions.
-        self.plotter = pv.Plotter(
+        self._owns_plotter = plotter is None
+        self.plotter = plotter if plotter is not None else pv.Plotter(
             off_screen=off_screen,
             window_size=list(window_size) if window_size is not None else None,
         )
@@ -1359,8 +1367,19 @@ class GridPlotter:
         Parameters
         ----------
         kwargs : optional
-            Optional arguments passed to pyvista.Plotter.show
+            Optional arguments passed to pyvista.Plotter.show. Ignored for an embedding
+            widget, which is already on screen.
+
+        Notes
+        -----
+        A render window this object does not own is already shown by whatever embeds it, and
+        pv.Plotter.show would open a second, standalone one; only a re-render is asked for
+        instead. See the plotter argument.
         """
+        if not self._owns_plotter:
+            self.plotter.render()
+            return
+
         self.plotter.show(**kwargs)
 
     def screenshot(
@@ -1497,6 +1516,14 @@ class GridPlotter:
         }
 
         if filename is None:
+            # _play_frames drives the render window's own event loop and blocks until the user
+            # closes it, which an embedding widget cannot survive - it has an event loop of its
+            # own already. Writing to a file works either way, so that is what is asked for.
+            if not self._owns_plotter:
+                raise RuntimeError(
+                    "Interactive animation playback needs a render window of its own; pass a "
+                    "filename to write the animation to a file instead."
+                )
             self._play_frames(keyword, rsteps, fps, clim, **frame_kwargs)
         else:
             self._write_frames(keyword, Path(filename), rsteps, fps, clim, **frame_kwargs)
@@ -1652,7 +1679,22 @@ class GridPlotter:
             self.plotter.show()
 
     def close(self) -> None:
-        """Close the render window and release its resources"""
+        """
+        Close the render window and release its resources
+
+        Notes
+        -----
+        A render window this object does not own outlives it - an embedding widget is reused
+        for the next plot rather than destroyed - so it is only emptied of everything this
+        object put on it, leaving it as pristine as a freshly constructed one. See the plotter
+        argument.
+        """
+        if not self._owns_plotter:
+            self.plotter.clear()
+            self._actors.clear()
+            self._glyphs.clear()
+            return
+
         self.plotter.close()
 
     def _glyph_source(
