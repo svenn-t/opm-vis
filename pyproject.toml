@@ -20,18 +20,23 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest"]
+dev = ["pytest", "pytest-qt"]
 # The opm_vis.pvplot backend is optional: it pulls in VTK, which is a large binary
 # dependency that users of the matplotlib backend in opm_vis.plot do not need.
 # imageio and imageio-ffmpeg are what PyVista writes GIFs and MP4s through, so
 # GridPlotter.animate needs them.
 pyvista = ["pyvista>=0.44", "imageio", "imageio-ffmpeg"]
+# opm-vis-gui. Includes the pyvista extra because the 3D tab is the main thing the window is
+# for; without it the window still opens and every other tab works, with the 3D one disabled.
+# pyvistaqt is what puts a PyVista render window inside a Qt widget.
+gui = ["opm-vis[pyvista]", "PySide6>=6.6", "pyvistaqt>=0.11"]
 
 [project.scripts]
 opm-vis-pv = "opm_vis.cli.pvplot_cli:main"
 opm-vis-mpl = "opm_vis.cli.plot_cli:main"
 opm-vis-sum = "opm_vis.cli.summary_cli:main"
 opm-vis-rdates = "opm_vis.cli.rdates_cli:main"
+opm-vis-gui = "opm_vis.gui.app:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
