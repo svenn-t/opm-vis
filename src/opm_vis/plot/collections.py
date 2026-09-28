@@ -462,7 +462,12 @@ class _SlicePolyCollection:
 
         if diff_rstep is not None and diff_kind == "relative":
             return f"{name} [%]"
-        return name + " [" + self.label(keyword) + "]"
+        try:
+            unit = self.label(keyword)
+        except KeyError:
+            # keyword has no tabulated unit label; not worth failing the plot over
+            return name
+        return f"{name} [{unit}]"
 
     def plot_grid(self, **kwargs) -> None:
         """
