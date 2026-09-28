@@ -527,6 +527,21 @@ def test_grid_only_writes_output_file(case1, offscreen, runner, tmp_path):
     assert output.stat().st_size > 0
 
 
+def test_grid_only_works_with_no_restart_files(data_dir, offscreen, runner, tmp_path):
+    # A dry run: only .EGRID/.INIT exist yet, no .UNRST/.X files at all
+    del offscreen
+    shutil.copy(data_dir / "SPE1CASE1.EGRID", tmp_path / "CASE.EGRID")
+    shutil.copy(data_dir / "SPE1CASE1.INIT", tmp_path / "CASE.INIT")
+    output = tmp_path / "grid.png"
+
+    result = runner.invoke(
+        main, [str(tmp_path / "CASE"), "-k", "1", "--grid-only", "-s", str(output)]
+    )
+
+    assert result.exit_code == 0, result.output
+    assert output.exists()
+
+
 def test_grid_only_plots_the_whole_grid_without_a_slice(case1, offscreen, runner, tmp_path):
     del offscreen
     output = tmp_path / "grid.png"

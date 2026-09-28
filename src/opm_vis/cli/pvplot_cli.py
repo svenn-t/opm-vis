@@ -593,14 +593,16 @@ def main(
         # with animate=False (see parse_rstep): a bare int or None, never a range
         assert rstep_value is None or isinstance(rstep_value, int)
 
+        actual_rstep: int | None
         if grid_only:
             # A solid-colour grid is time-invariant, so no report step is strictly needed;
             # one is still resolved for --wells/the title, defaulting to the first available.
-            actual_rstep = (
-                rstep_value
-                if rstep_value is not None
-                else plotter.case.report.report_steps()[0]
-            )
+            # A dry run with no restart files has none at all, and then both are skipped.
+            report_steps = plotter.case.report.report_steps()
+            if rstep_value is not None:
+                actual_rstep = rstep_value
+            else:
+                actual_rstep = report_steps[0] if report_steps else None
         elif threshold_value is not None:
             assert threshold_rstep is not None  # resolved above, before add_threshold
             actual_rstep = threshold_rstep
@@ -611,8 +613,9 @@ def main(
 
         plotter.rstep = actual_rstep
         if not grid_only:
-            # keyword is required unless grid_only (checked by resolve_keyword)
-            assert keyword is not None
+            # keyword is required unless grid_only (checked by resolve_keyword), and only
+            # grid_only can leave actual_rstep unresolved
+            assert keyword is not None and actual_rstep is not None
             plotter.set_scalars(
                 keyword,
                 actual_rstep,
@@ -627,9 +630,13 @@ def main(
                 calc_kind=calc_kind,
                 calc_count=calc_count,
             )
-        if wells or all_wells:
+        if (wells or all_wells) and actual_rstep is not None:
             plotter.add_wells(actual_rstep, slices=_wells_slices(all_wells, slices))
         if glyphs is not None:
+            if actual_rstep is None:
+                raise click.UsageError(
+                    "--glyphs needs restart data, but this case has no report steps."
+                )
             x_kw, y_kw, z_kw = glyphs
             # See the animate branch above for why slices or [(None, None)]
             for slice_dim, slice_index in slices or [(None, None)]:
@@ -646,7 +653,7 @@ def main(
                     every_n=glyph_every_n,
                     **_glyph_color_kwargs(glyph_color),
                 )
-        if not no_title:
+        if not no_title and actual_rstep is not None:
             plotter.set_title()
 
         if save is None:
