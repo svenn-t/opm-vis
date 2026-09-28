@@ -107,6 +107,25 @@ def test_unit_convention_for_field_units(reader):
     assert reader.unit_convention() == "field"
 
 
+def test_unit_convention_falls_back_to_init_file_with_no_restart_data(tmp_path, data_dir):
+    # A dry run: only .EGRID/.INIT exist yet, no .UNRST/.X files
+    shutil.copy(data_dir / "SPE1CASE1.EGRID", tmp_path / "CASE.EGRID")
+    shutil.copy(data_dir / "SPE1CASE1.INIT", tmp_path / "CASE.INIT")
+
+    with pytest.warns(UserWarning, match="No .UNRST or .X files found"):
+        rr = RestartReader([str(tmp_path / "CASE")])
+
+    assert rr.unit_convention() == "field"
+
+
+def test_unit_convention_raises_with_neither_restart_nor_init_data(tmp_path):
+    with pytest.warns(UserWarning, match="No .UNRST or .X files found"):
+        rr = RestartReader([str(tmp_path / "MISSING")])
+
+    with pytest.raises(ValueError, match="INTEHEAD item 2"):
+        rr.unit_convention()
+
+
 # ---------------------------------------------------------------------------
 # Report
 # ---------------------------------------------------------------------------

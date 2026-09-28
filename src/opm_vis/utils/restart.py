@@ -8,7 +8,7 @@ from typing import Any, Iterator
 
 import numpy as np
 from numpy.typing import NDArray
-from opm.io.ecl import ERst
+from opm.io.ecl import EclFile, ERst
 
 from opm_vis.utils.timeline import DAYS_PER_YEAR
 from opm_vis.utils.timeline import format_timeline as _format_timeline
@@ -55,6 +55,10 @@ class _RestartFiles:
             List of paths with restart files. Main folder is in paths[0]; rest of entries, if any,
             are folders with simulator restart runs.
         """
+        # Kept for RestartReader.unit_convention()'s .INIT fallback, which needs the main run's
+        # own path prefix (paths[0]) to look for a .INIT file once no restart data exists yet.
+        self._paths = paths
+
         # Instantiate OPM restart class. Need to search paths for .UNRST or .X files
         self.rst = []
         for path in paths:
@@ -194,8 +198,70 @@ class RestartReader(_RestartFiles):
         return self.rst[erst_idx][("INTEHEAD", rstep)][item]
 
     def unit_convention(self) -> str:
-        """Return unit convention used in run"""
-        return ["metric", "field", "lab", "pvt-m"][self.intehead(2, 0) - 1]
+        """
+        Return the unit convention used in the run
+
+        Returns
+        -------
+        str
+            One of 'metric', 'field', 'lab' or 'pvt-m'
+
+        Raises
+        ------
+        ValueError
+            If item 2 of INTEHEAD could not be found in either the restart files or the main
+            run's .INIT file
+
+        Notes
+        -----
+        Falls back to the main run's .INIT file when report step 0 has no restart data - e.g. a
+        dry run that has only been initialized, with no .UNRST/.X files yet. INTEHEAD's own
+        unit-convention item does not change between the two, and a case that got far enough to
+        write a .INIT file always has one, well before it has any restart data.
+        """
+        try:
+            item = self.intehead(2, 0)
+        except ValueError:
+            item = self._intehead_from_init(2)
+        return ["metric", "field", "lab", "pvt-m"][item - 1]
+
+    def _intehead_from_init(self, item: int) -> int:
+        """
+        Fallback for unit_convention(): read one INTEHEAD item from the main run's .INIT file
+
+        Parameters
+        ----------
+        item : int
+            Requested item in INTEHEAD
+
+        Returns
+        -------
+        int
+            Information from header
+
+        Raises
+        ------
+        ValueError
+            If no .INIT file was found for the main run
+
+        Notes
+        -----
+        Reads through the raw EclFile interface rather than opm.util.EModel (used elsewhere for
+        .INIT data, e.g. opm_vis.utils.static.InitReader): EModel is scoped to per-active-cell
+        arrays and does not expose header arrays like INTEHEAD at all.
+        """
+        init_files = glob(self._paths[0] + "*.INIT")
+        if not init_files:
+            raise ValueError(
+                f"INTEHEAD item {item} not found in restart file(s), and no .INIT file was "
+                f"found in {self._paths[0]} to fall back to!"
+            )
+        if len(init_files) > 1:
+            warnings.warn(
+                f"Multiple .INIT files in {self._paths[0]}. Importing {init_files[0]}."
+            )
+
+        return EclFile(init_files[0])["INTEHEAD"][item]
 
 
 class Report(_RestartFiles):

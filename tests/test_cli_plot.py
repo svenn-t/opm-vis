@@ -468,6 +468,20 @@ def test_grid_only_accepts_a_custom_color(case1, runner, tmp_path):
     assert output.exists()
 
 
+def test_grid_only_works_with_no_restart_files(data_dir, runner, tmp_path):
+    # A dry run: only .EGRID/.INIT exist yet, no .UNRST/.X files at all
+    (tmp_path / "CASE.EGRID").write_bytes((data_dir / "SPE1CASE1.EGRID").read_bytes())
+    (tmp_path / "CASE.INIT").write_bytes((data_dir / "SPE1CASE1.INIT").read_bytes())
+    output = tmp_path / "grid.png"
+
+    result = runner.invoke(
+        main, [str(tmp_path / "CASE"), "-k", "1", "--grid-only", "-s", str(output)]
+    )
+
+    assert result.exit_code == 0, result.output
+    assert output.exists()
+
+
 def test_grid_only_requires_a_slice(case1, runner):
     result = runner.invoke(main, [case1, "--grid-only"])
 
