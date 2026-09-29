@@ -10,8 +10,8 @@ given with no path at all, a name is generated from the selected vectors, ``--co
 
 .. code-block:: bash
 
-   opm-vis-sum tests/data/SPE1CASE1 -K FOPR --save rates.png
-   opm-vis-sum tests/data/SPE1CASE1 -K FOPR --save
+   opm-vis-sum -f tests/data/SPE1CASE1 -K FOPR --save rates.png
+   opm-vis-sum -f tests/data/SPE1CASE1 -K FOPR --save
 
 The generated name spells out at most three vectors and then counts the rest, and replaces the
 ``:`` and ``,`` in a mnemonic with ``-`` - they are ordinary characters in a summary mnemonic but
@@ -39,15 +39,15 @@ data from one invocation, or ``--export`` alone to skip the image entirely.
 
 .. code-block:: bash
 
-   opm-vis-sum tests/data/SPE1CASE1 -K FOPR -K FGOR --export rates.csv
-   opm-vis-sum tests/data/SPE1CASE1 -K FOPR --export --save rates.png
+   opm-vis-sum -f tests/data/SPE1CASE1 -K FOPR -K FGOR --export rates.csv
+   opm-vis-sum -f tests/data/SPE1CASE1 -K FOPR --export --save rates.png
 
 Given with no path at all, the CSV is printed to standard output instead of being written to a
 file - useful for piping straight into another tool:
 
 .. code-block:: bash
 
-   opm-vis-sum tests/data/SPE1CASE1 -K FOPR --export | column -s, -t
+   opm-vis-sum -f tests/data/SPE1CASE1 -K FOPR --export | column -s, -t
 
 .. code-block:: text
 

@@ -4,7 +4,7 @@ opm-vis-mpl
 The alternative Matplotlib backend's command-line tool, drawing each cell as a flat quad instead
 of real geometry. It is less developed than :doc:`cli_pv` and covers a smaller subset: one slice
 at a time, no wells, no glyphs, no thresholding or clipping, and no whole-grid view. See
-:doc:`cli` for the shared ``PATHS`` convention and 1-based ``-i``/``-j``/``-k`` indexing.
+:doc:`cli` for the shared ``-f``/``--folder`` convention and 1-based ``-i``/``-j``/``-k`` indexing.
 
 Each option group below has its own page with a description and a runnable example of every
 option in it: :doc:`cli_mpl_input`, :doc:`cli_mpl_grid_only`, :doc:`cli_mpl_slicing`,

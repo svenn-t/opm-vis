@@ -8,7 +8,7 @@ Draws (default) or hides wells with a completion on at least one chosen slice.
 
 .. code-block:: bash
 
-   opm-vis-pv tests/data/SPE1CASE1 -K SGAS -k 1 -j 6 -r 60 --view 3d --no-wells
+   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 -j 6 -r 60 --view 3d --no-wells
 
 ``--all-wells``
 -----------------
@@ -18,4 +18,4 @@ if both are given.
 
 .. code-block:: bash
 
-   opm-vis-pv tests/data/SPE1CASE1 -K SGAS -k 1 -r 60 --view 3d --all-wells
+   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 -r 60 --view 3d --all-wells

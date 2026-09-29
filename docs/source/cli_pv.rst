@@ -3,7 +3,7 @@ opm-vis-pv
 
 The PyVista backend's command-line tool. It renders the grid as real VTK geometry, with an
 interactive camera, wells, vector glyphs, thresholding, clipping and animation - the full option
-set. See :doc:`cli` for the shared ``PATHS`` convention and 1-based ``-i``/``-j``/``-k``
+set. See :doc:`cli` for the shared ``-f``/``--folder`` convention and 1-based ``-i``/``-j``/``-k``
 indexing.
 
 Each option group below has its own page with a description and a runnable example of every

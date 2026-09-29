@@ -8,7 +8,7 @@ Report step to plot. Not needed at all for a keyword that does not change over t
 
 .. code-block:: bash
 
-   opm-vis-pv tests/data/SPE1CASE1 -K SGAS -k 1 -r 60
+   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 -r 60
 
 ``--animate``
 ---------------
@@ -19,8 +19,8 @@ the case is used.
 
 .. code-block:: bash
 
-   opm-vis-pv tests/data/SPE1CASE1 -K SGAS -k 1 --animate --save sgas.gif
-   opm-vis-pv tests/data/SPE1CASE1 -K SGAS -k 1 -r 0:120:10 --animate --save sgas.gif
+   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 --animate --save sgas.gif
+   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 -r 0:120:10 --animate --save sgas.gif
 
 ``--fps``
 -----------
@@ -29,4 +29,4 @@ Frames per second for ``--animate``. Default: 3.
 
 .. code-block:: bash
 
-   opm-vis-pv tests/data/SPE1CASE1 -K SGAS -k 1 --animate --fps 4 --save sgas.gif
+   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 --animate --fps 4 --save sgas.gif
