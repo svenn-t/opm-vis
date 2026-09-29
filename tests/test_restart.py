@@ -222,8 +222,9 @@ def test_wells_iter_yields_one_entry_per_report_step(wells):
 class _FakeErst:
     """Minimal stand-in for ERst exposing just what Wells needs.
 
-    well_by_step maps a report step to well info (name, i, j, k, status), or to
-    None for a report step with no well data (mirrors real report step 0).
+    well_by_step maps a report step to well info (name, i, j, k, status, and optionally
+    gas_rate for an XWEL array), or to None for a report step with no well data (mirrors
+    real report step 0).
     """
 
     def __init__(self, report_steps, well_by_step):
@@ -233,7 +234,10 @@ class _FakeErst:
     def arrays(self, rstep):
         if self._well_by_step[rstep] is None:
             return [("SEQNUM", None, 1)]
-        return [("ZWEL", None, 1), ("ICON", None, 1)]
+        arrays = [("ZWEL", None, 1), ("ICON", None, 1)]
+        if "gas_rate" in self._well_by_step[rstep]:
+            arrays.append(("XWEL", None, 1))
+        return arrays
 
     def __getitem__(self, key):
         keyword, rstep = key
@@ -245,6 +249,7 @@ class _FakeErst:
                 intehead[16] = 1  # nwells
                 intehead[17] = 1  # ncwmax
                 intehead[24] = 11  # niwelz
+                intehead[26] = 5  # nxwelz
                 intehead[32] = 4  # niconz
             return intehead
         if keyword == "ZWEL":
@@ -255,6 +260,10 @@ class _FakeErst:
             iwel[1] = well["j"] + 1
             iwel[10] = 1 if well["status"] else 0
             return iwel
+        if keyword == "XWEL":
+            xwel = [0.0] * 5
+            xwel[2] = well["gas_rate"]
+            return xwel
         if keyword == "ICON":
             icon = [0] * 4
             icon[3] = well["k"] + 1
@@ -320,6 +329,24 @@ def test_wells_alignment_survives_a_step_missing_well_keywords():
     assert obj[5] == {"A": [1, 2, 3, True]}
     assert obj[7] == {}
     assert obj[10] == {"A": [4, 5, 6, False]}
+
+
+def test_wells_status_open_from_xwel_rate_when_iwel_says_shut():
+    # OPM sets IWEL status to shut when no connection has oil/water/gas flow, e.g. for a
+    # solvent injector, while the well-level rate in XWEL is nonzero (negative = injection).
+    fake = _FakeErst(
+        report_steps=[5, 10, 15],
+        well_by_step={
+            5: {"name": "A", "i": 1, "j": 2, "k": 3, "status": False, "gas_rate": -6.0e5},
+            10: {"name": "A", "i": 1, "j": 2, "k": 3, "status": False, "gas_rate": 0.0},
+            15: {"name": "A", "i": 1, "j": 2, "k": 3, "status": True, "gas_rate": 0.0},
+        },
+    )
+    obj = _bypass_wells_init([fake])
+
+    assert obj[5] == {"A": [1, 2, 3, True]}
+    assert obj[10] == {"A": [1, 2, 3, False]}
+    assert obj[15] == {"A": [1, 2, 3, True]}
 
 
 def test_wells_raises_value_error_on_zwel_intehead_mismatch():

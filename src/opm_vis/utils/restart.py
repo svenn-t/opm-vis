@@ -38,6 +38,10 @@ _IGNORE = frozenset(
     }
 )
 
+# XWEL items with well rates: oil, water, gas and reservoir voidage. Injection is stored as
+# negative production rates, so these cover both producers and injectors.
+_XWEL_RATES = [0, 1, 2, 4]
+
 
 # pylint: disable=too-few-public-methods
 class _RestartFiles:
@@ -559,6 +563,14 @@ class Wells(_RestartFiles):
                 iwel = np.reshape(erst[("IWEL", rstep)], (nwells, niwelz))
                 icon = np.reshape(erst[("ICON", rstep)], (nwells, ncwmax, niconz))
 
+                # Well-level surface/reservoir rates from XWEL, for alternative well status check
+                if "XWEL" in available_keys:
+                    nxwelz = intehead[26]
+                    xwel = np.reshape(erst[("XWEL", rstep)], (nwells, nxwelz))
+                    flowing = np.any(xwel[:, _XWEL_RATES] != 0, axis=1)
+                else:
+                    flowing = np.zeros(nwells, dtype=bool)
+
                 # Loop over wells and organize info in list as follows
                 # well_info = [i, j, k0, k1, ..., kend, status]
                 # NOTE: Suited for vertical wells at the moment: i, j are well head indices. Status
@@ -574,9 +586,11 @@ class Wells(_RestartFiles):
                         (icon[i, icon[i, :, 3] > 0, 3] - 1).tolist()
                     )
 
-                    # Well status (open/shut = True/False).
+                    # Well status (open/shut = True/False). OPM only sets IWEL status to open if a
+                    # connection has a nonzero oil, water or gas rate, which misses e.g. solvent
+                    # injectors, so a nonzero well rate in XWEL also counts as open.
                     # OBS: convert to Python bool instead of numpy.bool_
-                    self._well_info[ind][name].extend([bool(iwel[i, 10] > 0)])
+                    self._well_info[ind][name].extend([bool(iwel[i, 10] > 0 or flowing[i])])
 
                 # Increase internal well_info index counter
                 ind += 1
