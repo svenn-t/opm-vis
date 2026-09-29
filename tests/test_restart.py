@@ -47,7 +47,7 @@ def test_multiple_unrst_files_warns_and_loads_first(tmp_path, data_dir):
     shutil.copy(data_dir / "SPE1CASE1" / "SPE1CASE1.UNRST", tmp_path / "CASE2.UNRST")
 
     with pytest.warns(UserWarning, match="Multiple .UNRST files"):
-        rr = RestartReader([str(tmp_path / "CASE")])
+        rr = RestartReader([str(tmp_path)])
     assert len(rr.rst) == 1
 
 

@@ -61,7 +61,7 @@ def test_multiple_egrid_files_warns_and_still_validates(tmp_path, data_dir):
 
     with pytest.warns(UserWarning, match="Multiple .EGRID files"):
         with pytest.raises(TypeError):
-            GridSlice3D(str(tmp_path / "CASE"), "invalid", 0)
+            GridSlice3D(str(tmp_path), "invalid", 0)
 
 
 # ---------------------------------------------------------------------------

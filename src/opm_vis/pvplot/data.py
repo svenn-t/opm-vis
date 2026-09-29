@@ -28,7 +28,7 @@ class CaseData:
         ----------
         paths : list[str]
             List of paths to OPM files. First entry considered to be the main folder; rest of
-            entries are folders with restart runs. Each entry is a filename prefix.
+            entries are restart runs. Each entry is a case path prefix, e.g. "run/CASE".
 
         Notes
         -----

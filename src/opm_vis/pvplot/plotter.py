@@ -147,7 +147,7 @@ class GridPlotter:
         ----------
         paths : list[str]
             List of paths to OPM files. First entry considered to be the main folder; rest of
-            entries are folders with restart runs. Each entry is a filename prefix.
+            entries are restart runs. Each entry is a case path prefix, e.g. "run/CASE".
         off_screen : bool, optional
             Render without opening a window, by default False. Needed for screenshots and
             animations on a machine with no display.

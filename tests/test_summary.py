@@ -73,7 +73,7 @@ def test_multiple_smspec_files_warns_and_loads_first(tmp_path, data_dir):
         shutil.copy(data_dir / "SPE1CASE1" / "SPE1CASE1.UNSMRY", tmp_path / f"{name}.UNSMRY")
 
     with pytest.warns(UserWarning, match="Multiple .SMSPEC files"):
-        sr = SummaryReader([str(tmp_path / "CASE")])
+        sr = SummaryReader([str(tmp_path)])
 
     assert len(sr.smry) == 1
 

@@ -5,7 +5,7 @@ import pytest
 
 # Test datasets live next to this file, one folder per case (SPE1CASE2 shares its folder with
 # its restart run SPE1CASE2_RESTART_60). The library's "path" arguments are case path prefixes
-# rather than directories - every reader globs path + "*.EXT" - so the case fixtures below
+# rather than directories - every reader looks for path + ".EXT" - so the case fixtures below
 # return a prefix with no extension, and the *_dir fixtures the folder itself.
 _DATA_DIR = Path(__file__).parent / "data"
 

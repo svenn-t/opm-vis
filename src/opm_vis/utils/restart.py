@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import datetime as dt
 import warnings
-from glob import glob
 from typing import Any, Iterator
 
 import numpy as np
 from numpy.typing import NDArray
 from opm.io.ecl import EclFile, ERst
 
+from opm_vis.utils.cases import case_files
 from opm_vis.utils.timeline import DAYS_PER_YEAR
 from opm_vis.utils.timeline import format_timeline as _format_timeline
 from opm_vis.utils.timeline import timeline_entries as _timeline_entries
@@ -69,8 +69,8 @@ class _RestartFiles:
             # Init. restart file list for current search path
             restart_files = []
 
-            unrst_files = glob(path + "*.UNRST")
-            x_files = glob(path + "*.X*")
+            unrst_files = case_files(path, ".UNRST")
+            x_files = case_files(path, ".X")
 
             # Are there UNRST and X files in same folder? We load the UNRST file and issue warning
             if unrst_files and x_files:
@@ -254,7 +254,7 @@ class RestartReader(_RestartFiles):
         .INIT data, e.g. opm_vis.utils.static.InitReader): EModel is scoped to per-active-cell
         arrays and does not expose header arrays like INTEHEAD at all.
         """
-        init_files = glob(self._paths[0] + "*.INIT")
+        init_files = case_files(self._paths[0], ".INIT")
         if not init_files:
             raise ValueError(
                 f"INTEHEAD item {item} not found in restart file(s), and no .INIT file was "

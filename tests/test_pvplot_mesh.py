@@ -94,7 +94,7 @@ def test_multiple_egrid_files_warns_and_loads_first(tmp_path, data_dir):
     shutil.copy(data_dir / "SPE1CASE1" / "SPE1CASE1.EGRID", tmp_path / "CASE2.EGRID")
 
     with pytest.warns(UserWarning, match="Multiple .EGRID files"):
-        GridMesh(str(tmp_path / "CASE"))
+        GridMesh(str(tmp_path))
 
 
 def test_grid_mesh_without_mapaxes_is_unaffected(case1):

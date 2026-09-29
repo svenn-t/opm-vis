@@ -30,7 +30,7 @@ def test_multiple_init_files_warns_and_loads_first(tmp_path, data_dir):
     shutil.copy(data_dir / "SPE1CASE1" / "SPE1CASE1.INIT", tmp_path / "CASE2.INIT")
 
     with pytest.warns(UserWarning, match="Multiple .INIT files"):
-        ir = InitReader(str(tmp_path / "CASE"))
+        ir = InitReader(str(tmp_path))
     assert ir.init is not None
 
 
