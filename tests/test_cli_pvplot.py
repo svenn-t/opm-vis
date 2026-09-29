@@ -530,8 +530,8 @@ def test_grid_only_writes_output_file(case1, offscreen, runner, tmp_path):
 def test_grid_only_works_with_no_restart_files(data_dir, offscreen, runner, tmp_path):
     # A dry run: only .EGRID/.INIT exist yet, no .UNRST/.X files at all
     del offscreen
-    shutil.copy(data_dir / "SPE1CASE1.EGRID", tmp_path / "CASE.EGRID")
-    shutil.copy(data_dir / "SPE1CASE1.INIT", tmp_path / "CASE.INIT")
+    shutil.copy(data_dir / "SPE1CASE1" / "SPE1CASE1.EGRID", tmp_path / "CASE.EGRID")
+    shutil.copy(data_dir / "SPE1CASE1" / "SPE1CASE1.INIT", tmp_path / "CASE.INIT")
     output = tmp_path / "grid.png"
 
     result = runner.invoke(
@@ -1006,7 +1006,7 @@ def test_paths_default_to_the_working_directory(data_dir, offscreen, runner, tmp
 
     case_dir = tmp_path / "case"
     case_dir.mkdir()
-    for source in data_dir.glob("SPE1CASE1.*"):
+    for source in (data_dir / "SPE1CASE1").glob("SPE1CASE1.*"):
         shutil.copy(source, case_dir / source.name)
 
     monkeypatch.chdir(case_dir)

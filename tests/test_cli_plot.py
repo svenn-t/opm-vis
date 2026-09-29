@@ -470,8 +470,8 @@ def test_grid_only_accepts_a_custom_color(case1, runner, tmp_path):
 
 def test_grid_only_works_with_no_restart_files(data_dir, runner, tmp_path):
     # A dry run: only .EGRID/.INIT exist yet, no .UNRST/.X files at all
-    (tmp_path / "CASE.EGRID").write_bytes((data_dir / "SPE1CASE1.EGRID").read_bytes())
-    (tmp_path / "CASE.INIT").write_bytes((data_dir / "SPE1CASE1.INIT").read_bytes())
+    (tmp_path / "CASE.EGRID").write_bytes((data_dir / "SPE1CASE1" / "SPE1CASE1.EGRID").read_bytes())
+    (tmp_path / "CASE.INIT").write_bytes((data_dir / "SPE1CASE1" / "SPE1CASE1.INIT").read_bytes())
     output = tmp_path / "grid.png"
 
     result = runner.invoke(
@@ -561,7 +561,7 @@ def test_grid_only_with_animate_is_rejected(case1, runner):
 def test_paths_default_to_the_working_directory(data_dir, runner, tmp_path, monkeypatch):
     case_dir = tmp_path / "case"
     case_dir.mkdir()
-    for source in data_dir.glob("SPE1CASE1.*"):
+    for source in (data_dir / "SPE1CASE1").glob("SPE1CASE1.*"):
         shutil.copy(source, case_dir / source.name)
 
     monkeypatch.chdir(case_dir)

@@ -43,8 +43,8 @@ def test_no_restart_files_found_warns_and_skips(tmp_path):
 
 
 def test_multiple_unrst_files_warns_and_loads_first(tmp_path, data_dir):
-    shutil.copy(data_dir / "SPE1CASE1.UNRST", tmp_path / "CASE1.UNRST")
-    shutil.copy(data_dir / "SPE1CASE1.UNRST", tmp_path / "CASE2.UNRST")
+    shutil.copy(data_dir / "SPE1CASE1" / "SPE1CASE1.UNRST", tmp_path / "CASE1.UNRST")
+    shutil.copy(data_dir / "SPE1CASE1" / "SPE1CASE1.UNRST", tmp_path / "CASE2.UNRST")
 
     with pytest.warns(UserWarning, match="Multiple .UNRST files"):
         rr = RestartReader([str(tmp_path / "CASE")])
@@ -52,7 +52,7 @@ def test_multiple_unrst_files_warns_and_loads_first(tmp_path, data_dir):
 
 
 def test_unrst_and_x_files_together_warns_and_loads_unrst(tmp_path, data_dir):
-    shutil.copy(data_dir / "SPE1CASE1.UNRST", tmp_path / "CASE.UNRST")
+    shutil.copy(data_dir / "SPE1CASE1" / "SPE1CASE1.UNRST", tmp_path / "CASE.UNRST")
     (tmp_path / "CASE.X0001").touch()
 
     with pytest.warns(UserWarning, match="There are .UNRST and .X files"):
@@ -109,8 +109,8 @@ def test_unit_convention_for_field_units(reader):
 
 def test_unit_convention_falls_back_to_init_file_with_no_restart_data(tmp_path, data_dir):
     # A dry run: only .EGRID/.INIT exist yet, no .UNRST/.X files
-    shutil.copy(data_dir / "SPE1CASE1.EGRID", tmp_path / "CASE.EGRID")
-    shutil.copy(data_dir / "SPE1CASE1.INIT", tmp_path / "CASE.INIT")
+    shutil.copy(data_dir / "SPE1CASE1" / "SPE1CASE1.EGRID", tmp_path / "CASE.EGRID")
+    shutil.copy(data_dir / "SPE1CASE1" / "SPE1CASE1.INIT", tmp_path / "CASE.INIT")
 
     with pytest.warns(UserWarning, match="No .UNRST or .X files found"):
         rr = RestartReader([str(tmp_path / "CASE")])

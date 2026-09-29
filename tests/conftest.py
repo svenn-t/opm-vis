@@ -3,9 +3,10 @@ from pathlib import Path
 
 import pytest
 
-# Test datasets live next to this file. Note that "path" arguments throughout opm_vis are
-# filename prefixes rather than directories - every reader does glob(path + "*.EXT") - so the
-# case fixtures below deliberately return a prefix with no extension.
+# Test datasets live next to this file, one folder per case (SPE1CASE2 shares its folder with
+# its restart run SPE1CASE2_RESTART_60). The library's "path" arguments are case path prefixes
+# rather than directories - every reader globs path + "*.EXT" - so the case fixtures below
+# return a prefix with no extension, and the *_dir fixtures the folder itself.
 _DATA_DIR = Path(__file__).parent / "data"
 
 
@@ -30,7 +31,7 @@ def case1() -> str:
     Returns
     -------
     str
-        Path prefix, as the glob() in every opm_vis reader expects
+        Case path prefix, as every opm_vis reader expects
 
     Notes
     -----
@@ -38,7 +39,7 @@ def case1() -> str:
     with 121 report steps (0-120) and two vertical wells (PROD, INJ). It has no inactive cells,
     no NaN corner points and no faults.
     """
-    return str(_DATA_DIR / "SPE1CASE1")
+    return str(_DATA_DIR / "SPE1CASE1" / "SPE1CASE1")
 
 
 @pytest.fixture(scope="session")
@@ -49,7 +50,7 @@ def mapaxes_case() -> str:
     Returns
     -------
     str
-        Path prefix, as the glob() in every opm_vis reader expects
+        Case path prefix, as every opm_vis reader expects
 
     Notes
     -----
@@ -58,7 +59,7 @@ def mapaxes_case() -> str:
     at (527495.5, 6771119.0). Useful only for exercising the MAPAXES transform itself, not for
     anything that reads simulation results.
     """
-    return str(_DATA_DIR / "MAPAXES")
+    return str(_DATA_DIR / "MAPAXES" / "MAPAXES")
 
 
 @pytest.fixture(scope="session")
@@ -69,7 +70,7 @@ def tpsa_lagged() -> str:
     Returns
     -------
     str
-        Path prefix, as the glob() in every opm_vis reader expects
+        Case path prefix, as every opm_vis reader expects
 
     Notes
     -----
@@ -77,6 +78,50 @@ def tpsa_lagged() -> str:
     with 16 report steps (0-15) and two vertical wells (INJE, PROD) completed through every
     layer. Unlike SPE1CASE1 it carries geomechanics output - DISPX, DISPY, DISPZ among
     others - which is what makes it useful for exercising vector glyphs.
+    """
+    return str(_DATA_DIR / "TPSA_LAGGED" / "TPSA_LAGGED")
+
+
+@pytest.fixture(scope="session")
+def case1_dir() -> str:
+    """
+    Folder of the SPE1CASE1 dataset
+
+    Returns
+    -------
+    str
+        Path to tests/data/SPE1CASE1
+    """
+    return str(_DATA_DIR / "SPE1CASE1")
+
+
+@pytest.fixture(scope="session")
+def case2_dir() -> str:
+    """
+    Folder of the SPE1CASE2 dataset together with its restart run
+
+    Returns
+    -------
+    str
+        Path to tests/data/SPE1CASE2
+
+    Notes
+    -----
+    Holds SPE1CASE2 (report steps 0-60) and SPE1CASE2_RESTART_60, which restarts it from
+    report step 60 and carries on to 120.
+    """
+    return str(_DATA_DIR / "SPE1CASE2")
+
+
+@pytest.fixture(scope="session")
+def tpsa_lagged_dir() -> str:
+    """
+    Folder of the TPSA_LAGGED dataset
+
+    Returns
+    -------
+    str
+        Path to tests/data/TPSA_LAGGED
     """
     return str(_DATA_DIR / "TPSA_LAGGED")
 

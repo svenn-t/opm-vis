@@ -39,8 +39,8 @@ def compare_paths(tmp_path_factory, data_dir):
     second.mkdir()
 
     for ext in (".SMSPEC", ".UNSMRY"):
-        shutil.copy(data_dir / f"SPE1CASE2{ext}", first / f"CASE{ext}")
-        shutil.copy(data_dir / f"SPE1CASE2_RESTART_60{ext}", second / f"CASE{ext}")
+        shutil.copy(data_dir / "SPE1CASE2" / f"SPE1CASE2{ext}", first / f"CASE{ext}")
+        shutil.copy(data_dir / "SPE1CASE2" / f"SPE1CASE2_RESTART_60{ext}", second / f"CASE{ext}")
 
     return [str(first / "CASE"), str(second / "CASE")]
 
@@ -338,7 +338,7 @@ def test_paths_default_to_the_working_directory(data_dir, runner, tmp_path, monk
     case_dir = tmp_path / "case"
     case_dir.mkdir()
     for ext in (".SMSPEC", ".UNSMRY"):
-        shutil.copy(data_dir / f"SPE1CASE1{ext}", case_dir / f"SPE1CASE1{ext}")
+        shutil.copy(data_dir / "SPE1CASE1" / f"SPE1CASE1{ext}", case_dir / f"SPE1CASE1{ext}")
     monkeypatch.chdir(case_dir)
 
     result = runner.invoke(main, ["-K", "FOPR", "--save"])
