@@ -59,6 +59,69 @@ def _glyph_color_kwargs(glyph_color: str) -> dict:
     return {} if glyph_color.lower() == _GLYPH_MAGNITUDE else {"color": glyph_color}
 
 
+class _OneOrThreeOption(click.Option):
+    """
+    Option taking either one value or three, e.g. --glyphs DISP or --glyphs DISPX DISPY DISPZ
+
+    Click's options take a fixed number of values, so this greedily takes up to two more
+    values after the first one, stopping at the next option. The raw tuple of one to three
+    values is passed on as is, for the option's callback to validate and expand.
+    """
+
+    def add_to_parser(self, parser, ctx: click.Context) -> None:
+        super().add_to_parser(parser, ctx)
+        # pylint: disable=protected-access
+        for opt in self.opts:
+            opts = parser._long_opt if opt in parser._long_opt else parser._short_opt
+            parser_opt = opts[opt]
+            parser_opt.process = self._make_greedy(parser_opt.process)
+
+    @staticmethod
+    def _make_greedy(process):
+        def greedy_process(value, state) -> None:
+            values = [value]
+            while len(values) < 3 and state.rargs and not state.rargs[0].startswith("-"):
+                values.append(state.rargs.pop(0))
+            process(tuple(values), state)
+
+        return greedy_process
+
+
+def _expand_glyphs(
+    _ctx: click.Context, _param: click.Parameter, value: tuple[str, ...] | None
+) -> tuple[str, str, str] | None:
+    """
+    Expand --glyphs into its three vector-component keywords
+
+    Parameters
+    ----------
+    value : tuple[str, ...] | None
+        One to three raw values of --glyphs, or None if it was not given
+
+    Returns
+    -------
+    tuple[str, str, str] | None
+        The three keywords as given, or BASE expanded to BASEX BASEY BASEZ if only
+        one was given; None if --glyphs was not given
+
+    Raises
+    ------
+    click.BadParameter
+        If two values were given
+    """
+    if value is None:
+        return None
+    if len(value) == 1:
+        base = value[0]
+        return (f"{base}X", f"{base}Y", f"{base}Z")
+    if len(value) == 3:
+        return value
+    raise click.BadParameter(
+        f"takes one keyword base (e.g. DISP) or three keywords (e.g. DISPX DISPY DISPZ), "
+        f"got {' '.join(value)}. Put PATHS before --glyphs if they follow it."
+    )
+
+
 def _parse_threshold(raw: str | None) -> float | tuple[float, float] | None:
     """
     Parse --threshold into add_threshold's value argument
@@ -276,12 +339,15 @@ def _wells_slices(
 @click.option("--no-title", is_flag=True, default=False, help="Hide the report-date title.")
 @click.option(
     "--glyphs",
-    type=(str, str, str),
+    cls=_OneOrThreeOption,
+    type=click.UNPROCESSED,
+    callback=_expand_glyphs,
     default=None,
-    metavar="X Y Z",
+    metavar="X Y Z | BASE",
     help=(
         "Add vector glyphs (arrows) on every chosen slice from these three keyword "
-        "components, e.g. DISPX DISPY DISPZ."
+        "components, e.g. DISPX DISPY DISPZ, or one BASE expanded to BASEX BASEY "
+        "BASEZ, e.g. DISP."
     ),
 )
 @click.option(

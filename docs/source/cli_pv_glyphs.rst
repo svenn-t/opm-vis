@@ -11,6 +11,15 @@ a displacement vector, alongside ``--keyword``'s scalar colouring.
 
    opm-vis-pv tests/data/TPSA_LAGGED -K DISPZ -k 1 -r 15 --glyphs DISPX DISPY DISPZ
 
+A single ``BASE`` is expanded to ``BASEX BASEY BASEZ``, so this is the same as above:
+
+.. code-block:: bash
+
+   opm-vis-pv tests/data/TPSA_LAGGED -K DISPZ -k 1 -r 15 --glyphs DISP
+
+``--glyphs`` takes every value up to the next option, so put ``PATHS`` before it rather than
+directly after it.
+
 ``--glyph-scale`` / ``--no-glyph-scale``
 -------------------------------------------
 

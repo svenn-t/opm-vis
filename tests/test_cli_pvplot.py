@@ -1144,6 +1144,42 @@ def test_no_slice_with_glyphs_writes_output_file(tpsa_lagged, offscreen, runner,
     assert output.stat().st_size > 0
 
 
+def test_glyphs_prefix_expands_to_xyz_components(tpsa_lagged, offscreen, runner, tmp_path):
+    del offscreen
+    output = tmp_path / "disp.png"
+
+    result = runner.invoke(
+        main,
+        [
+            tpsa_lagged,
+            "--keyword",
+            "DISPZ",
+            "-k",
+            "1",
+            "--rstep",
+            "15",
+            "--glyphs",
+            "DISP",
+            "-s",
+            str(output),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert output.exists()
+    assert output.stat().st_size > 0
+
+
+def test_glyphs_with_two_values_is_rejected(tpsa_lagged, runner):
+    result = runner.invoke(
+        main,
+        [tpsa_lagged, "--keyword", "DISPZ", "-k", "1", "--rstep", "15", "--glyphs", "DISPX", "DISPY"],
+    )
+
+    assert result.exit_code != 0
+    assert "one keyword base" in result.output
+
+
 def test_multiple_slices_with_default_2d_view_is_rejected(case1, runner):
     result = runner.invoke(
         main, [case1, "--keyword", "SGAS", "-k", "1", "-i", "1", "--rstep", "60"]
