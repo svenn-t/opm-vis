@@ -10,7 +10,7 @@ matplotlib.use("Agg")  # headless: never try to open a GUI window while saving
 
 from opm_vis.cli.plot_cli import main  # noqa: E402
 
-# The case1 and data_dir fixtures come from conftest.py.
+# The case1_dir and data_dir fixtures come from conftest.py.
 
 
 @pytest.fixture
@@ -18,11 +18,11 @@ def runner() -> CliRunner:
     return CliRunner()
 
 
-def test_single_frame_writes_output_file(case1, runner, tmp_path):
+def test_single_frame_writes_output_file(case1_dir, runner, tmp_path):
     output = tmp_path / "sgas.png"
 
     result = runner.invoke(
-        main, [case1, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "-s", str(output)]
+        main, ["-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "-s", str(output)]
     )
 
     assert result.exit_code == 0, result.output
@@ -30,13 +30,13 @@ def test_single_frame_writes_output_file(case1, runner, tmp_path):
     assert output.stat().st_size > 0
 
 
-def test_animate_writes_output_file(case1, runner, tmp_path):
+def test_animate_writes_output_file(case1_dir, runner, tmp_path):
     output = tmp_path / "sgas.gif"
 
     result = runner.invoke(
         main,
         [
-            case1,
+            "-f", case1_dir,
             "--keyword",
             "SGAS",
             "-k",
@@ -54,13 +54,13 @@ def test_animate_writes_output_file(case1, runner, tmp_path):
     assert output.stat().st_size > 0
 
 
-def test_animate_range_with_step(case1, runner, tmp_path):
+def test_animate_range_with_step(case1_dir, runner, tmp_path):
     output = tmp_path / "sgas.gif"
 
     result = runner.invoke(
         main,
         [
-            case1,
+            "-f", case1_dir,
             "--keyword",
             "SGAS",
             "-k",
@@ -78,27 +78,27 @@ def test_animate_range_with_step(case1, runner, tmp_path):
     assert output.stat().st_size > 0
 
 
-def test_static_keyword_does_not_need_rstep(case1, runner, tmp_path):
+def test_static_keyword_does_not_need_rstep(case1_dir, runner, tmp_path):
     output = tmp_path / "poro.png"
 
-    result = runner.invoke(main, [case1, "--keyword", "PORO", "-k", "1", "-s", str(output)])
+    result = runner.invoke(main, ["-f", case1_dir, "--keyword", "PORO", "-k", "1", "-s", str(output)])
 
     assert result.exit_code == 0, result.output
     assert output.exists()
     assert output.stat().st_size > 0
 
 
-def test_dynamic_keyword_without_rstep_or_animate_is_rejected(case1, runner):
-    result = runner.invoke(main, [case1, "--keyword", "SGAS", "-k", "1"])
+def test_dynamic_keyword_without_rstep_or_animate_is_rejected(case1_dir, runner):
+    result = runner.invoke(main, ["-f", case1_dir, "--keyword", "SGAS", "-k", "1"])
 
     assert result.exit_code != 0
     assert "changes over time" in result.output
 
 
-def test_save_with_no_path_generates_a_name(case1, runner):
+def test_save_with_no_path_generates_a_name(case1_dir, runner):
     with runner.isolated_filesystem():
         result = runner.invoke(
-            main, [case1, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "--save"]
+            main, ["-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "--save"]
         )
 
         assert result.exit_code == 0, result.output
@@ -110,12 +110,12 @@ def test_save_with_no_path_generates_a_name(case1, runner):
 # ---------------------------------------------------------------------------
 
 
-def test_diff_writes_output_file(case1, runner, tmp_path):
+def test_diff_writes_output_file(case1_dir, runner, tmp_path):
     output = tmp_path / "sgas.png"
 
     result = runner.invoke(
         main,
-        [case1, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "--diff", "-s", str(output)],
+        ["-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "--diff", "-s", str(output)],
     )
 
     assert result.exit_code == 0, result.output
@@ -123,12 +123,12 @@ def test_diff_writes_output_file(case1, runner, tmp_path):
     assert output.stat().st_size > 0
 
 
-def test_diff_default_name_reflects_diff_rstep_and_kind(case1, runner):
+def test_diff_default_name_reflects_diff_rstep_and_kind(case1_dir, runner):
     with runner.isolated_filesystem():
         result = runner.invoke(
             main,
             [
-                case1,
+                "-f", case1_dir,
                 "--keyword",
                 "PRESSURE",
                 "-k",
@@ -148,13 +148,13 @@ def test_diff_default_name_reflects_diff_rstep_and_kind(case1, runner):
         assert Path("PRESSURE-diff0-absolute_k1_r60.png").exists()
 
 
-def test_diff_animate_writes_output_file(case1, runner, tmp_path):
+def test_diff_animate_writes_output_file(case1_dir, runner, tmp_path):
     output = tmp_path / "sgas.gif"
 
     result = runner.invoke(
         main,
         [
-            case1,
+            "-f", case1_dir,
             "--keyword",
             "SGAS",
             "-k",
@@ -178,12 +178,12 @@ def test_diff_animate_writes_output_file(case1, runner, tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_calculator_writes_output_file(case1, runner, tmp_path):
+def test_calculator_writes_output_file(case1_dir, runner, tmp_path):
     output = tmp_path / "sgas.png"
 
     result = runner.invoke(
         main,
-        [case1, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "-c", "mean", "-s", str(output)],
+        ["-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "-c", "mean", "-s", str(output)],
     )
 
     assert result.exit_code == 0, result.output
@@ -191,11 +191,11 @@ def test_calculator_writes_output_file(case1, runner, tmp_path):
     assert output.stat().st_size > 0
 
 
-def test_calculator_default_name_reflects_calc_kind(case1, runner):
+def test_calculator_default_name_reflects_calc_kind(case1_dir, runner):
     with runner.isolated_filesystem():
         result = runner.invoke(
             main,
-            [case1, "--keyword", "PRESSURE", "-k", "1", "--rstep", "60", "-c", "sum", "--save"],
+            ["-f", case1_dir, "--keyword", "PRESSURE", "-k", "1", "--rstep", "60", "-c", "sum", "--save"],
         )
 
         assert result.exit_code == 0, result.output
@@ -203,12 +203,12 @@ def test_calculator_default_name_reflects_calc_kind(case1, runner):
         assert Path("PRESSURE-sum_k1-3_r60.png").exists()
 
 
-def test_calculator_default_name_reflects_calc_count(case1, runner):
+def test_calculator_default_name_reflects_calc_count(case1_dir, runner):
     with runner.isolated_filesystem():
         result = runner.invoke(
             main,
             [
-                case1,
+                "-f", case1_dir,
                 "--keyword",
                 "PRESSURE",
                 "-k",
@@ -228,13 +228,13 @@ def test_calculator_default_name_reflects_calc_count(case1, runner):
         assert Path("PRESSURE-sum_k1-2_r60.png").exists()
 
 
-def test_calculator_with_calc_count_writes_output_file(case1, runner, tmp_path):
+def test_calculator_with_calc_count_writes_output_file(case1_dir, runner, tmp_path):
     output = tmp_path / "sgas.png"
 
     result = runner.invoke(
         main,
         [
-            case1,
+            "-f", case1_dir,
             "--keyword",
             "SGAS",
             "-k",
@@ -255,13 +255,13 @@ def test_calculator_with_calc_count_writes_output_file(case1, runner, tmp_path):
     assert output.stat().st_size > 0
 
 
-def test_calculator_combines_with_diff(case1, runner, tmp_path):
+def test_calculator_combines_with_diff(case1_dir, runner, tmp_path):
     output = tmp_path / "pressure.png"
 
     result = runner.invoke(
         main,
         [
-            case1,
+            "-f", case1_dir,
             "--keyword",
             "PRESSURE",
             "-k",
@@ -283,13 +283,13 @@ def test_calculator_combines_with_diff(case1, runner, tmp_path):
     assert output.stat().st_size > 0
 
 
-def test_calculator_animate_writes_output_file(case1, runner, tmp_path):
+def test_calculator_animate_writes_output_file(case1_dir, runner, tmp_path):
     output = tmp_path / "sgas.gif"
 
     result = runner.invoke(
         main,
         [
-            case1,
+            "-f", case1_dir,
             "--keyword",
             "SGAS",
             "-k",
@@ -309,7 +309,7 @@ def test_calculator_animate_writes_output_file(case1, runner, tmp_path):
     assert output.stat().st_size > 0
 
 
-def test_calculator_surface_writes_output_file(case1, runner, tmp_path):
+def test_calculator_surface_writes_output_file(case1_dir, runner, tmp_path):
     # SPE1CASE1 has no inactive cells, so this is a smoke test that -c surface is wired
     # through the CLI/SlicePoly construction without error - not a test of its gap-filling
     # behaviour itself (see test_grid.py, with synthetic inactive-cell data, for that).
@@ -318,7 +318,7 @@ def test_calculator_surface_writes_output_file(case1, runner, tmp_path):
     result = runner.invoke(
         main,
         [
-            case1, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "-c", "surface", "-s",
+            "-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "-c", "surface", "-s",
             str(output),
         ],
     )
@@ -328,11 +328,11 @@ def test_calculator_surface_writes_output_file(case1, runner, tmp_path):
     assert output.stat().st_size > 0
 
 
-def test_calculator_surface_default_name_reflects_calc_kind(case1, runner):
+def test_calculator_surface_default_name_reflects_calc_kind(case1_dir, runner):
     with runner.isolated_filesystem():
         result = runner.invoke(
             main,
-            [case1, "--keyword", "PRESSURE", "-k", "1", "--rstep", "60", "-c", "surface", "--save"],
+            ["-f", case1_dir, "--keyword", "PRESSURE", "-k", "1", "--rstep", "60", "-c", "surface", "--save"],
         )
 
         assert result.exit_code == 0, result.output
@@ -340,13 +340,13 @@ def test_calculator_surface_default_name_reflects_calc_kind(case1, runner):
         assert Path("PRESSURE-surface_k1-3_r60.png").exists()
 
 
-def test_calculator_surface_combines_with_diff(case1, runner, tmp_path):
+def test_calculator_surface_combines_with_diff(case1_dir, runner, tmp_path):
     output = tmp_path / "pressure.png"
 
     result = runner.invoke(
         main,
         [
-            case1,
+            "-f", case1_dir,
             "--keyword",
             "PRESSURE",
             "-k",
@@ -368,13 +368,13 @@ def test_calculator_surface_combines_with_diff(case1, runner, tmp_path):
     assert output.stat().st_size > 0
 
 
-def test_calculator_surface_animate_writes_output_file(case1, runner, tmp_path):
+def test_calculator_surface_animate_writes_output_file(case1_dir, runner, tmp_path):
     output = tmp_path / "sgas.gif"
 
     result = runner.invoke(
         main,
         [
-            case1,
+            "-f", case1_dir,
             "--keyword",
             "SGAS",
             "-k",
@@ -394,21 +394,21 @@ def test_calculator_surface_animate_writes_output_file(case1, runner, tmp_path):
     assert output.stat().st_size > 0
 
 
-def test_calc_count_without_calculator_is_rejected(case1, runner):
+def test_calc_count_without_calculator_is_rejected(case1_dir, runner):
     result = runner.invoke(
         main,
-        [case1, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "--calc-count", "2"],
+        ["-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "--calc-count", "2"],
     )
 
     assert result.exit_code != 0
     assert "only valid together with --calculator" in result.output
 
 
-def test_calc_count_must_be_positive(case1, runner):
+def test_calc_count_must_be_positive(case1_dir, runner):
     result = runner.invoke(
         main,
         [
-            case1,
+            "-f", case1_dir,
             "--keyword",
             "SGAS",
             "-k",
@@ -426,16 +426,16 @@ def test_calc_count_must_be_positive(case1, runner):
     assert "must be a positive integer" in result.output
 
 
-def test_calculator_is_rejected_with_grid_only(case1, runner):
-    result = runner.invoke(main, [case1, "-k", "1", "--grid-only", "-c", "mean"])
+def test_calculator_is_rejected_with_grid_only(case1_dir, runner):
+    result = runner.invoke(main, ["-f", case1_dir, "-k", "1", "--grid-only", "-c", "mean"])
 
     assert result.exit_code != 0
     assert "has no effect with --grid-only" in result.output
 
 
-def test_calculator_kind_is_rejected_when_unknown(case1, runner):
+def test_calculator_kind_is_rejected_when_unknown(case1_dir, runner):
     result = runner.invoke(
-        main, [case1, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "-c", "bogus"]
+        main, ["-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "-c", "bogus"]
     )
 
     assert result.exit_code != 0
@@ -447,21 +447,21 @@ def test_calculator_kind_is_rejected_when_unknown(case1, runner):
 # ---------------------------------------------------------------------------
 
 
-def test_grid_only_writes_output_file(case1, runner, tmp_path):
+def test_grid_only_writes_output_file(case1_dir, runner, tmp_path):
     output = tmp_path / "grid.png"
 
-    result = runner.invoke(main, [case1, "-k", "1", "--grid-only", "-s", str(output)])
+    result = runner.invoke(main, ["-f", case1_dir, "-k", "1", "--grid-only", "-s", str(output)])
 
     assert result.exit_code == 0, result.output
     assert output.exists()
     assert output.stat().st_size > 0
 
 
-def test_grid_only_accepts_a_custom_color(case1, runner, tmp_path):
+def test_grid_only_accepts_a_custom_color(case1_dir, runner, tmp_path):
     output = tmp_path / "grid.png"
 
     result = runner.invoke(
-        main, [case1, "-k", "1", "--grid-only", "--grid-color", "tan", "-s", str(output)]
+        main, ["-f", case1_dir, "-k", "1", "--grid-only", "--grid-color", "tan", "-s", str(output)]
     )
 
     assert result.exit_code == 0, result.output
@@ -475,23 +475,23 @@ def test_grid_only_works_with_no_restart_files(data_dir, runner, tmp_path):
     output = tmp_path / "grid.png"
 
     result = runner.invoke(
-        main, [str(tmp_path / "CASE"), "-k", "1", "--grid-only", "-s", str(output)]
+        main, ["-f", str(tmp_path), "-k", "1", "--grid-only", "-s", str(output)]
     )
 
     assert result.exit_code == 0, result.output
     assert output.exists()
 
 
-def test_grid_only_requires_a_slice(case1, runner):
-    result = runner.invoke(main, [case1, "--grid-only"])
+def test_grid_only_requires_a_slice(case1_dir, runner):
+    result = runner.invoke(main, ["-f", case1_dir, "--grid-only"])
 
     assert result.exit_code != 0
     assert "at least one of -i, -j, or -k" in result.output
 
 
-def test_grid_only_default_output_name_uses_grid_tag(case1, runner):
+def test_grid_only_default_output_name_uses_grid_tag(case1_dir, runner):
     with runner.isolated_filesystem():
-        result = runner.invoke(main, [case1, "-k", "1", "--grid-only", "--save"])
+        result = runner.invoke(main, ["-f", case1_dir, "-k", "1", "--grid-only", "--save"])
 
         assert result.exit_code == 0, result.output
         assert Path("GRID_k1_all.png").exists()
@@ -502,13 +502,13 @@ def test_grid_only_default_output_name_uses_grid_tag(case1, runner):
 # ---------------------------------------------------------------------------
 
 
-def test_show_edges_writes_output_file(case1, runner, tmp_path):
+def test_show_edges_writes_output_file(case1_dir, runner, tmp_path):
     output = tmp_path / "edges.png"
 
     result = runner.invoke(
         main,
         [
-            case1,
+            "-f", case1_dir,
             "--keyword",
             "SGAS",
             "-k",
@@ -526,33 +526,33 @@ def test_show_edges_writes_output_file(case1, runner, tmp_path):
     assert output.stat().st_size > 0
 
 
-def test_show_edges_works_with_grid_only(case1, runner, tmp_path):
+def test_show_edges_works_with_grid_only(case1_dir, runner, tmp_path):
     output = tmp_path / "edges.png"
 
     result = runner.invoke(
-        main, [case1, "-k", "1", "--grid-only", "--show-edges", "-s", str(output)]
+        main, ["-f", case1_dir, "-k", "1", "--grid-only", "--show-edges", "-s", str(output)]
     )
 
     assert result.exit_code == 0, result.output
     assert output.exists()
 
 
-def test_grid_only_and_keyword_together_is_rejected(case1, runner):
-    result = runner.invoke(main, [case1, "--keyword", "SGAS", "-k", "1", "--grid-only"])
+def test_grid_only_and_keyword_together_is_rejected(case1_dir, runner):
+    result = runner.invoke(main, ["-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--grid-only"])
 
     assert result.exit_code != 0
     assert "--keyword is not allowed together with --grid-only" in result.output
 
 
-def test_neither_keyword_nor_grid_only_is_rejected(case1, runner):
-    result = runner.invoke(main, [case1, "-k", "1"])
+def test_neither_keyword_nor_grid_only_is_rejected(case1_dir, runner):
+    result = runner.invoke(main, ["-f", case1_dir, "-k", "1"])
 
     assert result.exit_code != 0
     assert "Pass --keyword, or --grid-only" in result.output
 
 
-def test_grid_only_with_animate_is_rejected(case1, runner):
-    result = runner.invoke(main, [case1, "-k", "1", "--grid-only", "--animate"])
+def test_grid_only_with_animate_is_rejected(case1_dir, runner):
+    result = runner.invoke(main, ["-f", case1_dir, "-k", "1", "--grid-only", "--animate"])
 
     assert result.exit_code != 0
     assert "--grid-only does not support --animate" in result.output
@@ -571,32 +571,32 @@ def test_paths_default_to_the_working_directory(data_dir, runner, tmp_path, monk
     assert (case_dir / "SGAS_k1_r60.png").exists()
 
 
-def test_at_least_one_slice_dimension_is_required(case1, runner):
-    result = runner.invoke(main, [case1, "--keyword", "SGAS", "--rstep", "60"])
+def test_at_least_one_slice_dimension_is_required(case1_dir, runner):
+    result = runner.invoke(main, ["-f", case1_dir, "--keyword", "SGAS", "--rstep", "60"])
 
     assert result.exit_code != 0
     assert "at least one of -i, -j, or -k" in result.output
 
 
-def test_more_than_one_slice_dimension_is_rejected(case1, runner):
+def test_more_than_one_slice_dimension_is_rejected(case1_dir, runner):
     result = runner.invoke(
-        main, [case1, "--keyword", "SGAS", "-k", "1", "-i", "1", "--rstep", "60"]
+        main, ["-f", case1_dir, "--keyword", "SGAS", "-k", "1", "-i", "1", "--rstep", "60"]
     )
 
     assert result.exit_code != 0
     assert "only supports one slice" in result.output
 
 
-def test_rstep_range_requires_animate(case1, runner):
-    result = runner.invoke(main, [case1, "--keyword", "SGAS", "-k", "1", "--rstep", "0:60"])
+def test_rstep_range_requires_animate(case1_dir, runner):
+    result = runner.invoke(main, ["-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "0:60"])
 
     assert result.exit_code != 0
     assert "only valid with --animate" in result.output
 
 
-def test_animate_requires_a_range_not_a_single_step(case1, runner):
+def test_animate_requires_a_range_not_a_single_step(case1_dir, runner):
     result = runner.invoke(
-        main, [case1, "--keyword", "SGAS", "-k", "1", "--animate", "--rstep", "60"]
+        main, ["-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--animate", "--rstep", "60"]
     )
 
     assert result.exit_code != 0
@@ -616,11 +616,11 @@ def test_help_flag_short_form(runner):
     assert "Usage:" in result.output
 
 
-def test_unknown_keyword_is_a_clean_error(case1, runner, tmp_path):
+def test_unknown_keyword_is_a_clean_error(case1_dir, runner, tmp_path):
     result = runner.invoke(
         main,
         [
-            case1,
+            "-f", case1_dir,
             "--keyword",
             "NOPE",
             "-k",
@@ -655,13 +655,13 @@ FAULTS
     return str(path)
 
 
-def test_fault_draws_the_fault_trace(case1, fault_file, runner, tmp_path):
+def test_fault_draws_the_fault_trace(case1_dir, fault_file, runner, tmp_path):
     output = tmp_path / "sgas.png"
 
     result = runner.invoke(
         main,
         [
-            case1, "--keyword", "SGAS", "-k", "1", "--rstep", "60",
+            "-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60",
             "--fault", fault_file, "-s", str(output),
         ],
     )
@@ -670,13 +670,13 @@ def test_fault_draws_the_fault_trace(case1, fault_file, runner, tmp_path):
     assert output.exists()
 
 
-def test_fault_works_with_3d_view(case1, fault_file, runner, tmp_path):
+def test_fault_works_with_3d_view(case1_dir, fault_file, runner, tmp_path):
     output = tmp_path / "sgas.png"
 
     result = runner.invoke(
         main,
         [
-            case1, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "--view", "3d",
+            "-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "--view", "3d",
             "--fault", fault_file, "-s", str(output),
         ],
     )
@@ -685,13 +685,13 @@ def test_fault_works_with_3d_view(case1, fault_file, runner, tmp_path):
     assert output.exists()
 
 
-def test_fault_works_with_grid_only(case1, fault_file, runner, tmp_path):
+def test_fault_works_with_grid_only(case1_dir, fault_file, runner, tmp_path):
     output = tmp_path / "grid.png"
 
     result = runner.invoke(
         main,
         [
-            case1, "--grid-only", "-k", "1",
+            "-f", case1_dir, "--grid-only", "-k", "1",
             "--fault", fault_file, "-s", str(output),
         ],
     )
@@ -700,13 +700,13 @@ def test_fault_works_with_grid_only(case1, fault_file, runner, tmp_path):
     assert output.exists()
 
 
-def test_fault_name_restricts_to_the_given_fault(case1, fault_file, runner, tmp_path):
+def test_fault_name_restricts_to_the_given_fault(case1_dir, fault_file, runner, tmp_path):
     output = tmp_path / "sgas.png"
 
     result = runner.invoke(
         main,
         [
-            case1, "--keyword", "SGAS", "-k", "1", "--rstep", "60",
+            "-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60",
             "--fault", fault_file, "--fault-name", "FAULT1", "-s", str(output),
         ],
     )
@@ -715,11 +715,11 @@ def test_fault_name_restricts_to_the_given_fault(case1, fault_file, runner, tmp_
     assert output.exists()
 
 
-def test_fault_name_unknown_fault_is_a_clean_error(case1, fault_file, runner, tmp_path):
+def test_fault_name_unknown_fault_is_a_clean_error(case1_dir, fault_file, runner, tmp_path):
     result = runner.invoke(
         main,
         [
-            case1, "--keyword", "SGAS", "-k", "1", "--rstep", "60",
+            "-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60",
             "--fault", fault_file, "--fault-name", "NOPE", "-s", str(tmp_path / "x.png"),
         ],
     )
@@ -728,21 +728,21 @@ def test_fault_name_unknown_fault_is_a_clean_error(case1, fault_file, runner, tm
     assert "Traceback" not in result.output
 
 
-def test_fault_name_without_fault_is_rejected(case1, runner):
+def test_fault_name_without_fault_is_rejected(case1_dir, runner):
     result = runner.invoke(
         main,
-        [case1, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "--fault-name", "FAULT1"],
+        ["-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "--fault-name", "FAULT1"],
     )
 
     assert result.exit_code != 0
     assert "--fault-name needs --fault" in result.output
 
 
-def test_fault_missing_file_is_a_clean_error(case1, runner, tmp_path):
+def test_fault_missing_file_is_a_clean_error(case1_dir, runner, tmp_path):
     result = runner.invoke(
         main,
         [
-            case1, "--keyword", "SGAS", "-k", "1", "--rstep", "60",
+            "-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60",
             "--fault", str(tmp_path / "NOPE.DATA"), "-s", str(tmp_path / "x.png"),
         ],
     )

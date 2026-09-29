@@ -11,19 +11,30 @@ from typing import Any, Literal, overload
 import click
 
 from opm_vis.utils.calc import CALC_KINDS
+from opm_vis.utils.cases import find_cases
 
 # Show the help page both on -h/--help and when the command is run with nothing at all: with
-# PATHS defaulting to the working directory and --rstep optional for static keywords, a bare
+# --folder defaulting to the working directory and --rstep optional for static keywords, a bare
 # invocation has no other useful thing to do.
 COMMAND_SETTINGS = {
     "context_settings": {"help_option_names": ["-h", "--help"]},
     "no_args_is_help": True,
 }
 
-# Paths are filename prefixes, not directories: the first entry is the main run, any further
-# entries are restart runs. See README.md and every reader in opm_vis.utils/opm_vis.pvplot.
-# Optional: resolve_paths() below searches the working directory when none are given.
-PATHS_ARGUMENT = click.argument("paths", nargs=-1, required=False)
+# Folders are searched for cases by resolve_paths() below, which falls back to the working
+# directory when none are given. Every case found is part of one run: the main run followed by
+# its restarts, see opm_vis.utils.cases.
+FOLDER_OPTION = click.option(
+    "-f",
+    "--folder",
+    "folders",
+    multiple=True,
+    type=click.Path(exists=True, file_okay=False),
+    metavar="DIR",
+    help="Folder with the case's output files (repeatable). Every case found in the given "
+    "folders is read as one run: the main run followed by its restarts, ordered by where "
+    "each starts. Default: the current folder.",
+)
 
 KEYWORD_OPTION = click.option(
     "-K",
@@ -237,21 +248,57 @@ def add_options(options: Sequence[Callable]) -> Callable:
     return _add_options
 
 
-def resolve_paths(paths: tuple[str, ...]) -> list[str]:
+def resolve_paths(folders: tuple[str, ...]) -> list[str]:
     """
-    Fall back to searching the working directory when no paths were given
+    Find the cases in --folder, falling back to the working directory when none were given
 
     Parameters
     ----------
-    paths : tuple[str, ...]
-        Value of the PATHS argument
+    folders : tuple[str, ...]
+        Value of --folder
 
     Returns
     -------
     list[str]
-        paths itself if non-empty, otherwise ["./"]
+        Case path prefixes of every case in folders, main run first, as find_cases returns
+        them
+
+    Raises
+    ------
+    click.UsageError
+        If no case was found in any of the folders
     """
-    return list(paths) if paths else ["./"]
+    searched = list(folders) if folders else ["."]
+    cases = find_cases(searched)
+    if not cases:
+        raise click.UsageError(
+            f"No simulation case (.EGRID, .INIT, .UNRST, .X, .SMSPEC or .UNSMRY files) found "
+            f"in {', '.join(searched)}. Pass the case's folder with -f/--folder."
+        )
+
+    return cases
+
+
+def resolve_case_groups(folders: tuple[str, ...]) -> list[list[str]]:
+    """
+    Find the cases in each --folder separately, one group per folder
+
+    Parameters
+    ----------
+    folders : tuple[str, ...]
+        Value of --folder
+
+    Returns
+    -------
+    list[list[str]]
+        For each folder, its cases as resolve_paths returns them - one run with its restarts
+
+    Raises
+    ------
+    click.UsageError
+        If a folder has no case
+    """
+    return [resolve_paths((folder,)) for folder in (folders or (".",))]
 
 
 def resolve_diff_rstep(diff: bool, diff_rstep: int) -> int | None:

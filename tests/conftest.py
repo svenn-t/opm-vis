@@ -6,7 +6,8 @@ import pytest
 # Test datasets live next to this file, one folder per case (SPE1CASE2 shares its folder with
 # its restart run SPE1CASE2_RESTART_60). The library's "path" arguments are case path prefixes
 # rather than directories - every reader looks for path + ".EXT" - so the case fixtures below
-# return a prefix with no extension, and the *_dir fixtures the folder itself.
+# return a prefix with no extension. The CLIs take the folder instead (-f/--folder), which the
+# *_dir fixtures return.
 _DATA_DIR = Path(__file__).parent / "data"
 
 
@@ -85,7 +86,7 @@ def tpsa_lagged() -> str:
 @pytest.fixture(scope="session")
 def case1_dir() -> str:
     """
-    Folder of the SPE1CASE1 dataset
+    Folder of the SPE1CASE1 dataset, as -f/--folder takes it
 
     Returns
     -------
@@ -98,7 +99,7 @@ def case1_dir() -> str:
 @pytest.fixture(scope="session")
 def case2_dir() -> str:
     """
-    Folder of the SPE1CASE2 dataset together with its restart run
+    Folder of the SPE1CASE2 dataset together with its restart run, as -f/--folder takes it
 
     Returns
     -------
@@ -116,7 +117,7 @@ def case2_dir() -> str:
 @pytest.fixture(scope="session")
 def tpsa_lagged_dir() -> str:
     """
-    Folder of the TPSA_LAGGED dataset
+    Folder of the TPSA_LAGGED dataset, as -f/--folder takes it
 
     Returns
     -------

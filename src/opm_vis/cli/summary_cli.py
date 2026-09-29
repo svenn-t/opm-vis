@@ -10,11 +10,12 @@ from click.core import ParameterSource
 
 from opm_vis.cli.common import (
     COMMAND_SETTINGS,
-    PATHS_ARGUMENT,
+    FOLDER_OPTION,
     SAVE_OPTION,
     check_curve_option_count,
     default_summary_output_name,
     handle_errors,
+    resolve_case_groups,
     resolve_paths,
     resolve_subplot_layout,
     resolve_summary_keywords,
@@ -121,7 +122,7 @@ def _parse_xlim(raw: tuple[str, str] | None, x_axis: str) -> tuple[Any, Any] | N
 
 
 @click.command(**COMMAND_SETTINGS)
-@PATHS_ARGUMENT
+@FOLDER_OPTION
 # Deliberately not common.py's KEYWORD_OPTION: that one is single-valued, because the grid
 # plotters colour by exactly one keyword at a time. Putting several time series in the same plot
 # is the whole point of a summary plot, so this -K is repeatable and takes fnmatch patterns -
@@ -146,8 +147,8 @@ def _parse_xlim(raw: tuple[str, str] | None, x_axis: str) -> tuple[Any, Any] | N
     "--compare",
     is_flag=True,
     default=False,
-    help="Read each PATHS entry as a case of its own, one line per case and vector, instead of "
-    "stitching them into a single restart chain.",
+    help="Read each -f/--folder as a case of its own (with its own restarts), one line per case "
+    "and vector, instead of stitching every folder into a single restart chain.",
 )
 @click.option(
     "--x-axis",
@@ -272,7 +273,7 @@ def _parse_xlim(raw: tuple[str, str] | None, x_axis: str) -> tuple[Any, Any] | N
 @handle_errors
 # pylint: disable=too-many-arguments,too-many-locals
 def main(
-    paths: tuple[str, ...],
+    folders: tuple[str, ...],
     keywords: tuple[str, ...],
     list_keywords: bool,
     compare: bool,
@@ -297,9 +298,9 @@ def main(
     Plot summary vectors - the time series in a case's .SMSPEC/.UNSMRY files - such as FOPR,
     FGOR or WBHP:PROD.
 
-    PATHS are filename prefixes: the first is the main run, any further ones are restart runs,
-    read as a single stitched time series. Defaults to searching the working directory (./) if
-    not given. With --compare, each path is a separate case instead, drawn as its own line.
+    The case is found in -f/--folder, by default the current folder. Several cases found
+    there are read as one run - the main run followed by its restarts - stitched into a single
+    time series. With --compare, each folder is a separate case instead, drawn as its own line.
 
     Pick vectors with -K/--keyword, once per vector; a value containing a wildcard is an fnmatch
     pattern, so -K 'WOPR*' plots the oil rate of every well. Run --list-keywords to see what
@@ -309,10 +310,13 @@ def main(
 
     See the documentation for the full option reference with examples.
     """
-    resolved_paths = resolve_paths(paths)
+    resolved_paths = resolve_paths(folders)
 
     if list_keywords:
-        given = _options_given(click.get_current_context(), frozenset({"list_keywords"}))
+        # --folder picks the case whose vectors to list, so it is no conflict
+        given = _options_given(
+            click.get_current_context(), frozenset({"list_keywords", "folders"})
+        )
         if given:
             raise click.UsageError(
                 "--list-keywords only prints the case's summary vectors; drop "
@@ -328,11 +332,11 @@ def main(
             "Pass -K/--keyword at least once to pick a summary vector to plot, or "
             "--list-keywords to see what the case has."
         )
-    if compare and len(resolved_paths) < 2:
+    if compare and len(folders) < 2:
         raise click.UsageError(
-            "--compare needs at least two PATHS, one per case to compare. A single path is "
-            "read as one case with its restarts, which is what this command does anyway "
-            "without --compare."
+            "--compare needs at least two -f/--folder, one per case to compare. A single "
+            "folder is read as one case with its restarts, which is what this command does "
+            "anyway without --compare."
         )
     if ylim is not None and ylim[0] >= ylim[1]:
         raise click.UsageError(f"--ylim MIN MAX must be increasing; got {ylim[0]} {ylim[1]}.")
@@ -345,7 +349,8 @@ def main(
     # Keywords are resolved against the plot's own cases rather than a reader of their own, so a
     # pattern under --compare can match a vector any of them has; --layout, --linestyle,
     # --marker and --color are then checked against however many that turned out to be.
-    plot = SummaryPlot(resolved_paths, compare=compare, figsize=figsize)
+    cases = resolve_case_groups(folders) if compare else resolved_paths
+    plot = SummaryPlot(cases, compare=compare, figsize=figsize)
     selected = resolve_summary_keywords(keywords, plot.available_keywords())
     layout_shape = resolve_subplot_layout(layout, subplots, len(selected))
 

@@ -14,7 +14,7 @@ from opm_vis.cli.common import (
     DIFF_OPTIONS,
     GRID_ONLY_OPTIONS,
     KEYWORD_OPTION,
-    PATHS_ARGUMENT,
+    FOLDER_OPTION,
     RSTEP_OR_ANIMATE_OPTIONS,
     SAVE_OPTION,
     SHOW_EDGES_OPTION,
@@ -118,7 +118,7 @@ def _expand_glyphs(
         return value
     raise click.BadParameter(
         f"takes one keyword base (e.g. DISP) or three keywords (e.g. DISPX DISPY DISPZ), "
-        f"got {' '.join(value)}. Put PATHS before --glyphs if they follow it."
+        f"got {' '.join(value)}."
     )
 
 
@@ -215,7 +215,7 @@ def _wells_slices(
 
 
 @click.command(**COMMAND_SETTINGS)
-@PATHS_ARGUMENT
+@FOLDER_OPTION
 @KEYWORD_OPTION
 @add_options(GRID_ONLY_OPTIONS)
 @add_options(SLICE_OPTIONS)
@@ -386,7 +386,7 @@ def _wells_slices(
 @handle_errors
 # pylint: disable=too-many-arguments,too-many-locals
 def main(
-    paths: tuple[str, ...],
+    folders: tuple[str, ...],
     keyword: str | None,
     grid_only: bool,
     grid_color: str | None,
@@ -437,8 +437,8 @@ def main(
     Plot --keyword on one or more grid slices with the PyVista backend, or animate it over
     report steps with --animate.
 
-    PATHS are filename prefixes: the first is the main run, any further ones are restart runs.
-    Defaults to searching the working directory (./) if not given.
+    The case is found in -f/--folder, by default the current folder. Several cases found
+    there are read as one run: the main run followed by its restarts.
 
     See the documentation for the full option reference with examples.
     """
@@ -495,7 +495,7 @@ def main(
     grid_kwargs = grid_color_kwargs(grid_color)
 
     with GridPlotter(
-        resolve_paths(paths), off_screen=save is not None, window_size=window_size,
+        resolve_paths(folders), off_screen=save is not None, window_size=window_size,
         z_scale=z_scale,
     ) as plotter:
         calc_end = None
