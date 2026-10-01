@@ -34,4 +34,4 @@ same fixed ``--diff-rstep``:
 
 .. code-block:: bash
 
-   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 --animate -d --save sgas_diff.gif
+   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 --animate -d --save

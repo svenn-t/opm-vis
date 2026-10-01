@@ -12,8 +12,8 @@ or faulted structure. Needs ``--keyword``.
 
 .. code-block:: bash
 
-   opm-vis-mpl -f tests/data/SPE1CASE1 -K PRESSURE -k 1 -r 60 -c mean --save pressure_mean.png
-   opm-vis-mpl -f tests/data/SPE1CASE1 -K PRESSURE -k 1 -r 60 -c surface --save pressure_top.png
+   opm-vis-mpl -f tests/data/SPE1CASE1 -K PRESSURE -k 1 -r 60 -c mean --save
+   opm-vis-mpl -f tests/data/SPE1CASE1 -K PRESSURE -k 1 -r 60 -c surface --save
 
 ``--calc-count``
 -------------------

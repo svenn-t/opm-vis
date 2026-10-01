@@ -12,8 +12,8 @@ or faulted structure. Requires exactly one of ``-i``/``-j``/``-k``, and needs ``
 
 .. code-block:: bash
 
-   opm-vis-pv -f tests/data/SPE1CASE1 -K PRESSURE -k 1 -r 60 -c mean --save pressure_mean.png
-   opm-vis-pv -f tests/data/SPE1CASE1 -K PRESSURE -k 1 -r 60 -c surface --save pressure_top.png
+   opm-vis-pv -f tests/data/SPE1CASE1 -K PRESSURE -k 1 -r 60 -c mean --save
+   opm-vis-pv -f tests/data/SPE1CASE1 -K PRESSURE -k 1 -r 60 -c surface --save
 
 ``--calc-count``
 -------------------

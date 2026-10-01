@@ -10,7 +10,7 @@ Cuts the whole grid with a plane normal to this axis (``x``, ``-x``, ``y``, ``-y
 
 .. code-block:: bash
 
-   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -r 120 --clip x --view 3d --save clip.png
+   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -r 120 --clip x --view 3d --save
 
 ``--clip-origin``
 --------------------

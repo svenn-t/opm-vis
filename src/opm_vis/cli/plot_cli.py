@@ -1,7 +1,6 @@
 """opm-vis-mpl: plot a keyword on a grid slice with the alternative Matplotlib backend"""
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 import click
@@ -32,10 +31,18 @@ from opm_vis.cli.common import (
     resolve_keyword_rstep,
     resolve_paths,
     resolve_slices,
+    save_folder_option,
+    save_path,
+    wants_save,
 )
 from opm_vis.plot.collections import SlicePoly2DCollection, SlicePoly3DCollection
 from opm_vis.utils.calc import resolve_calc_range
 from opm_vis.utils.grid import slice_dimension_size
+
+
+# Default --save-folder names, inside the first -f/--folder
+_FIGURE_FOLDER = "mpl-figs"
+_ANIMATION_FOLDER = "mpl-gifs"
 
 
 @click.command(**COMMAND_SETTINGS)
@@ -47,6 +54,7 @@ from opm_vis.utils.grid import slice_dimension_size
 @add_options(DIFF_OPTIONS)
 @add_options(CALCULATOR_OPTIONS)
 @SAVE_OPTION
+@save_folder_option(_FIGURE_FOLDER, _ANIMATION_FOLDER)
 @CMAP_OPTION
 @CLIM_OPTION
 @click.option(
@@ -103,7 +111,8 @@ def main(
     diff_kind: str,
     calc_kind: str | None,
     calc_count: int | None,
-    save: str | None,
+    save: bool,
+    save_folder: str | None,
     cmap: str,
     clim: tuple[float, float] | None,
     view: str,
@@ -206,21 +215,24 @@ def main(
             **poly_kwargs,
         )
 
-        if save is None:
+        if not wants_save(save, save_folder):
             coll.show()
         else:
             coll.save_gif(
-                Path(save)
-                if save
-                else default_output_name(
-                    keyword,
-                    slices,
-                    rsteps=steps,
-                    ext="gif",
-                    diff_rstep=resolved_diff_rstep,
-                    diff_kind=diff_kind,
-                    calc_kind=calc_kind,
-                    calc_end=calc_end,
+                save_path(
+                    save_folder,
+                    default_output_name(
+                        keyword,
+                        slices,
+                        rsteps=steps,
+                        ext="gif",
+                        diff_rstep=resolved_diff_rstep,
+                        diff_kind=diff_kind,
+                        calc_kind=calc_kind,
+                        calc_end=calc_end,
+                    ),
+                    folders=folders,
+                    default=_ANIMATION_FOLDER,
                 ),
                 fps=fps,
             )
@@ -231,11 +243,16 @@ def main(
         # pick, so plot_grid()/save_grid_plot() need none either.
         coll.plot_grid(**grid_color_kwargs(grid_color), **edge_kwargs)
 
-        if save is None:
+        if not wants_save(save, save_folder):
             coll.show()
         else:
             coll.save_grid_plot(
-                Path(save) if save else default_output_name("GRID", slices, ext="png")
+                save_path(
+                    save_folder,
+                    default_output_name("GRID", slices, ext="png"),
+                    folders=folders,
+                    default=_FIGURE_FOLDER,
+                )
             )
         return
 
@@ -264,21 +281,24 @@ def main(
         **poly_kwargs,
     )
 
-    if save is None:
+    if not wants_save(save, save_folder):
         coll.show()
     else:
         coll.save_plot(
-            Path(save)
-            if save
-            else default_output_name(
-                keyword,
-                slices,
-                rstep=actual_rstep,
-                ext="png",
-                diff_rstep=resolved_diff_rstep,
-                diff_kind=diff_kind,
-                calc_kind=calc_kind,
-                calc_end=calc_end,
+            save_path(
+                save_folder,
+                default_output_name(
+                    keyword,
+                    slices,
+                    rstep=actual_rstep,
+                    ext="png",
+                    diff_rstep=resolved_diff_rstep,
+                    diff_kind=diff_kind,
+                    calc_kind=calc_kind,
+                    calc_end=calc_end,
+                ),
+                folders=folders,
+                default=_FIGURE_FOLDER,
             )
         )
 

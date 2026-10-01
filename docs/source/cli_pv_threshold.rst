@@ -10,7 +10,7 @@ Shows only cells where ``--keyword``'s value is at least ``LOW`` (or within ``LO
 
 .. code-block:: bash
 
-   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -r 120 --threshold 0.4 --view 3d --save plume.png
+   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -r 120 --threshold 0.4 --view 3d --save
    opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -r 120 --threshold 0.2:0.6 --view 3d
 
 ``--threshold-invert``

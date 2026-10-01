@@ -7,7 +7,7 @@ there is no PyVista equivalent. See :doc:`cli` for the shared ``-f``/``--folder`
 
 .. code-block:: bash
 
-   opm-vis-sum -f tests/data/SPE1CASE1 -K FOPR -K FGOR --subplots --save rates.png
+   opm-vis-sum -f tests/data/SPE1CASE1 -K FOPR -K FGOR --subplots --save
 
 ``-K``/``--keyword`` is repeatable and takes fnmatch patterns, so a whole family of vectors can
 be picked at once - ``-K 'WOPR:*'`` plots the oil rate of every well. Quote the pattern, or the

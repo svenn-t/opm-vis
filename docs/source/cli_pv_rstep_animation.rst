@@ -23,8 +23,8 @@ the case is used.
 
 .. code-block:: bash
 
-   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 --animate --save sgas.gif
-   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 -r 0:120:10 --animate --save sgas.gif
+   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 --animate --save
+   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 -r 0:120:10 --animate --save
 
 ``--fps``
 -----------
@@ -33,4 +33,4 @@ Frames per second for ``--animate``. Default: 3.
 
 .. code-block:: bash
 
-   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 --animate --fps 4 --save sgas.gif
+   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 --animate --fps 4 --save

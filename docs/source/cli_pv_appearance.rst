@@ -17,7 +17,7 @@ Draws each cell's outline on top of its fill colour.
 
 .. code-block:: bash
 
-   opm-vis-pv -f tests/data/SPE1CASE1 --grid-only --show-edges --view 3d --save grid.png
+   opm-vis-pv -f tests/data/SPE1CASE1 --grid-only --show-edges --view 3d --save
 
 ``--opacity``
 ---------------
@@ -62,7 +62,7 @@ Render window size in pixels, ``WIDTH HEIGHT``.
 
 .. code-block:: bash
 
-   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 -r 60 --window-size 1600 1200 --save sgas.png
+   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 -r 60 --window-size 1600 1200 --save
 
 ``--no-colorbar``
 --------------------

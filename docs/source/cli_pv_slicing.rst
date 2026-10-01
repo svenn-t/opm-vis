@@ -34,7 +34,7 @@ needs ``--view 3d``:
 
 .. code-block:: bash
 
-   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -r 60 --view 3d --save sgas_grid.png
+   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -r 60 --view 3d --save
 
 ``--quads``
 -------------
@@ -46,5 +46,5 @@ have (no thresholding/clipping on it). Needs ``-i``/``-j``/``-k``.
 
 .. code-block:: bash
 
-   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 -r 60 --quads --save sgas_k1.png
-   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 --animate --quads --save sgas.gif
+   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 -r 60 --quads --save
+   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 --animate --quads --save

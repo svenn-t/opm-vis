@@ -1,7 +1,6 @@
 """opm-vis-pv: plot a keyword on a grid slice with the PyVista backend"""
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Literal
 
 import click
@@ -31,10 +30,17 @@ from opm_vis.cli.common import (
     resolve_keyword_rstep,
     resolve_paths,
     resolve_slices,
+    save_folder_option,
+    save_path,
+    wants_save,
 )
 from opm_vis.pvplot import GridPlotter
 from opm_vis.utils.calc import resolve_calc_range
 from opm_vis.utils.grid import slice_dimension_size
+
+# Default --save-folder names, inside the first -f/--folder
+_FIGURE_FOLDER = "pv-figs"
+_ANIMATION_FOLDER = "pv-gifs"
 
 # --glyph-color's default: colour arrows by vector magnitude (add_glyphs' own "scalars" default)
 # rather than a flat colour. Not a real colour name, so it can't collide with one.
@@ -216,6 +222,7 @@ def _wells_slices(
 @add_options(DIFF_OPTIONS)
 @add_options(CALCULATOR_OPTIONS)
 @SAVE_OPTION
+@save_folder_option(_FIGURE_FOLDER, _ANIMATION_FOLDER)
 @CMAP_OPTION
 @CLIM_OPTION
 @click.option(
@@ -394,7 +401,8 @@ def main(
     diff_kind: str,
     calc_kind: str | None,
     calc_count: int | None,
-    save: str | None,
+    save: bool,
+    save_folder: str | None,
     cmap: str,
     clim: tuple[float, float] | None,
     view: str,
@@ -488,7 +496,9 @@ def main(
     grid_kwargs = grid_color_kwargs(grid_color)
 
     with GridPlotter(
-        resolve_paths(folders), off_screen=save is not None, window_size=window_size,
+        resolve_paths(folders),
+        off_screen=wants_save(save, save_folder),
+        window_size=window_size,
         z_scale=z_scale,
     ) as plotter:
         calc_end = None
@@ -616,16 +626,21 @@ def main(
                     )
 
             output = None
-            if save is not None:
-                output = Path(save) if save else default_output_name(
-                    f"{keyword}-clip" if clip is not None else keyword,
-                    slices,
-                    rsteps=steps,
-                    ext="gif",
-                    diff_rstep=resolved_diff_rstep,
-                    diff_kind=diff_kind,
-                    calc_kind=calc_kind,
-                    calc_end=calc_end,
+            if wants_save(save, save_folder):
+                output = save_path(
+                    save_folder,
+                    default_output_name(
+                        f"{keyword}-clip" if clip is not None else keyword,
+                        slices,
+                        rsteps=steps,
+                        ext="gif",
+                        diff_rstep=resolved_diff_rstep,
+                        diff_kind=diff_kind,
+                        calc_kind=calc_kind,
+                        calc_end=calc_end,
+                    ),
+                    folders=folders,
+                    default=_ANIMATION_FOLDER,
                 )
             plotter.animate(
                 keyword,
@@ -720,7 +735,7 @@ def main(
         if not no_title and actual_rstep is not None:
             plotter.set_title()
 
-        if save is None:
+        if not wants_save(save, save_folder):
             plotter.show()
         else:
             keyword_tag = keyword or "GRID"
@@ -728,15 +743,20 @@ def main(
                 keyword_tag += "-threshold"
             if clip is not None:
                 keyword_tag += "-clip"
-            output = Path(save) if save else default_output_name(
-                keyword_tag,
-                slices,
-                rstep=actual_rstep,
-                ext="png",
-                diff_rstep=resolved_diff_rstep,
-                diff_kind=diff_kind,
-                calc_kind=calc_kind,
-                calc_end=calc_end,
+            output = save_path(
+                save_folder,
+                default_output_name(
+                    keyword_tag,
+                    slices,
+                    rstep=actual_rstep,
+                    ext="png",
+                    diff_rstep=resolved_diff_rstep,
+                    diff_kind=diff_kind,
+                    calc_kind=calc_kind,
+                    calc_end=calc_end,
+                ),
+                folders=folders,
+                default=_FIGURE_FOLDER,
             )
             plotter.screenshot(output)
 

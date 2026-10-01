@@ -193,11 +193,11 @@ def test_default_name_marks_compare_and_x_axis():
     ],
 )
 def test_plot_is_written_to_file(case1_dir, runner, tmp_path, options):
-    out = tmp_path / "plot.png"
-    result = runner.invoke(main, ["-f", case1_dir, *options, "-s", str(out)])
+    out = tmp_path / "out"
+    result = runner.invoke(main, ["-f", case1_dir, *options, "-sf", str(out)])
 
     assert result.exit_code == 0, result.output
-    assert out.stat().st_size > 0
+    assert all(f.stat().st_size > 0 for f in out.iterdir())
 
 
 # ---------------------------------------------------------------------------
@@ -207,7 +207,7 @@ def test_plot_is_written_to_file(case1_dir, runner, tmp_path, options):
 
 def test_save_with_no_path_generates_a_name(case1_dir, runner):
     with runner.isolated_filesystem():
-        result = runner.invoke(main, ["-f", case1_dir, "-K", "FOPR", "--save"])
+        result = runner.invoke(main, ["-f", case1_dir, "-K", "FOPR", "-sf", "."])
 
         assert result.exit_code == 0, result.output
         assert Path("FOPR_date.png").exists()
@@ -215,7 +215,7 @@ def test_save_with_no_path_generates_a_name(case1_dir, runner):
 
 def test_save_with_no_path_reflects_the_x_axis(case1_dir, runner):
     with runner.isolated_filesystem():
-        result = runner.invoke(main, ["-f", case1_dir, "-K", "FOPR", "--x-axis", "years", "--save"])
+        result = runner.invoke(main, ["-f", case1_dir, "-K", "FOPR", "--x-axis", "years", "-sf", "."])
 
         assert result.exit_code == 0, result.output
         assert Path("FOPR_years.png").exists()
@@ -223,7 +223,7 @@ def test_save_with_no_path_reflects_the_x_axis(case1_dir, runner):
 
 def test_save_with_no_path_expands_a_wildcard_into_the_name(case1_dir, runner):
     with runner.isolated_filesystem():
-        result = runner.invoke(main, ["-f", case1_dir, "-K", "WOPR:*", "--save"])
+        result = runner.invoke(main, ["-f", case1_dir, "-K", "WOPR:*", "-sf", "."])
 
         assert result.exit_code == 0, result.output
         assert Path("WOPR-INJ_WOPR-PROD_date.png").exists()
@@ -231,7 +231,7 @@ def test_save_with_no_path_expands_a_wildcard_into_the_name(case1_dir, runner):
 
 def test_compare_marks_the_generated_name(compare_paths, runner):
     with runner.isolated_filesystem():
-        result = runner.invoke(main, ["--compare", *compare_paths, "-K", "FOPR", "--save"])
+        result = runner.invoke(main, ["--compare", *compare_paths, "-K", "FOPR", "-sf", "."])
 
         assert result.exit_code == 0, result.output
         assert Path("FOPR_compare_date.png").exists()
@@ -244,10 +244,10 @@ def test_compare_marks_the_generated_name(compare_paths, runner):
 
 def test_export_writes_a_csv_file(case1_dir, runner, tmp_path):
     csv_out = tmp_path / "rates.csv"
-    png_out = tmp_path / "rates.png"
+    png_out = tmp_path / "out"
     result = runner.invoke(
         main,
-        ["-f", case1_dir, "-K", "FOPR", "-K", "FGOR", "--export", str(csv_out), "-s", str(png_out)],
+        ["-f", case1_dir, "-K", "FOPR", "-K", "FGOR", "--export", str(csv_out), "-sf", str(png_out)],
     )
 
     assert result.exit_code == 0, result.output
@@ -259,7 +259,7 @@ def test_export_with_no_path_prints_to_stdout(case1_dir, runner):
     # --save with no value also generates a file next to the case; run in an isolated
     # filesystem so that file lands in a throwaway directory, not the repo itself
     with runner.isolated_filesystem():
-        result = runner.invoke(main, ["-f", case1_dir, "-K", "FOPR", "--export", "--save"])
+        result = runner.invoke(main, ["-f", case1_dir, "-K", "FOPR", "--export", "-sf", "."])
 
     assert result.exit_code == 0, result.output
     assert "date,FOPR" in result.output
@@ -267,20 +267,20 @@ def test_export_with_no_path_prints_to_stdout(case1_dir, runner):
 
 def test_export_and_save_both_write_their_own_file(case1_dir, runner, tmp_path):
     csv_out = tmp_path / "rates.csv"
-    png_out = tmp_path / "rates.png"
+    png_out = tmp_path / "out"
     result = runner.invoke(
-        main, ["-f", case1_dir, "-K", "FOPR", "--export", str(csv_out), "--save", str(png_out)]
+        main, ["-f", case1_dir, "-K", "FOPR", "--export", str(csv_out), "-sf", str(png_out)]
     )
 
     assert result.exit_code == 0, result.output
     assert csv_out.stat().st_size > 0
-    assert png_out.stat().st_size > 0
+    assert all(f.stat().st_size > 0 for f in png_out.iterdir())
 
 
 def test_export_respects_x_axis(case1_dir, runner):
     with runner.isolated_filesystem():
         result = runner.invoke(
-            main, ["-f", case1_dir, "-K", "FOPR", "--x-axis", "years", "--export", "--save"]
+            main, ["-f", case1_dir, "-K", "FOPR", "--x-axis", "years", "--export", "-sf", "."]
         )
 
     assert result.exit_code == 0, result.output
@@ -290,7 +290,7 @@ def test_export_respects_x_axis(case1_dir, runner):
 def test_export_reflects_compare(compare_paths, runner):
     with runner.isolated_filesystem():
         result = runner.invoke(
-            main, ["--compare", *compare_paths, "-K", "FOPR", "--export", "--save"]
+            main, ["--compare", *compare_paths, "-K", "FOPR", "--export", "-sf", "."]
         )
 
     assert result.exit_code == 0, result.output
@@ -311,19 +311,19 @@ def test_export_combined_with_list_keywords_is_rejected(case1_dir, runner):
 
 
 def test_restart_chain_is_stitched_by_default(compare_paths, runner, tmp_path):
-    out = tmp_path / "chain.png"
-    result = runner.invoke(main, [*compare_paths, "-K", "FOPR", "-s", str(out)])
+    out = tmp_path / "out"
+    result = runner.invoke(main, [*compare_paths, "-K", "FOPR", "-sf", str(out)])
 
     assert result.exit_code == 0, result.output
-    assert out.stat().st_size > 0
+    assert all(f.stat().st_size > 0 for f in out.iterdir())
 
 
 def test_compare_plots_each_path_as_its_own_case(compare_paths, runner, tmp_path):
-    out = tmp_path / "compare.png"
-    result = runner.invoke(main, ["--compare", *compare_paths, "-K", "FOPR", "-s", str(out)])
+    out = tmp_path / "out"
+    result = runner.invoke(main, ["--compare", *compare_paths, "-K", "FOPR", "-sf", str(out)])
 
     assert result.exit_code == 0, result.output
-    assert out.stat().st_size > 0
+    assert all(f.stat().st_size > 0 for f in out.iterdir())
 
 
 def test_compare_needs_two_paths(case1_dir, runner):
@@ -340,10 +340,10 @@ def test_folder_defaults_to_the_working_directory(data_dir, runner, tmp_path, mo
         shutil.copy(data_dir / "SPE1CASE1" / f"SPE1CASE1{ext}", case_dir / f"SPE1CASE1{ext}")
     monkeypatch.chdir(case_dir)
 
-    result = runner.invoke(main, ["-K", "FOPR", "--save"])
+    result = runner.invoke(main, ["-K", "FOPR", "-s"])
 
     assert result.exit_code == 0, result.output
-    assert (case_dir / "FOPR_date.png").exists()
+    assert (case_dir / "sum-figs" / "FOPR_date.png").exists()
 
 
 # ---------------------------------------------------------------------------
@@ -460,11 +460,11 @@ def test_missing_folder_is_a_clean_error(runner, tmp_path):
 
 
 def test_restart_in_the_same_folder_is_stitched(case2_dir, runner, tmp_path):
-    out = tmp_path / "chain.png"
-    result = runner.invoke(main, ["-f", case2_dir, "-K", "FOPR", "-s", str(out)])
+    out = tmp_path / "out"
+    result = runner.invoke(main, ["-f", case2_dir, "-K", "FOPR", "-sf", str(out)])
 
     assert result.exit_code == 0, result.output
-    assert out.stat().st_size > 0
+    assert all(f.stat().st_size > 0 for f in out.iterdir())
 
 
 # ---------------------------------------------------------------------------
@@ -483,3 +483,71 @@ def test_help_flag_short_form(runner):
 
     assert result.exit_code == 0, result.output
     assert "Usage:" in result.output
+
+
+# ---------------------------------------------------------------------------
+# --save / --save-folder
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def case1_copy(data_dir, tmp_path):
+    # A writable copy of SPE1CASE1's summary files, since --save's default folder goes inside
+    # -f/--folder, which must not be tests/data itself
+    case_dir = tmp_path / "case"
+    case_dir.mkdir()
+    for ext in (".SMSPEC", ".UNSMRY"):
+        shutil.copy(data_dir / "SPE1CASE1" / f"SPE1CASE1{ext}", case_dir / f"SPE1CASE1{ext}")
+    return case_dir
+
+
+def test_save_creates_the_sum_figs_folder_inside_the_case_folder(case1_copy, runner):
+    result = runner.invoke(main, ["-f", str(case1_copy), "-K", "FOPR", "-s"])
+
+    assert result.exit_code == 0, result.output
+    assert f"Created folder {case1_copy / 'sum-figs'}" in result.output
+    assert (case1_copy / "sum-figs" / "FOPR_date.png").exists()
+
+
+def test_save_into_an_existing_folder_is_silent(case1_copy, runner):
+    (case1_copy / "sum-figs").mkdir()
+    result = runner.invoke(main, ["-f", str(case1_copy), "-K", "FOPR", "-s"])
+
+    assert result.exit_code == 0, result.output
+    assert "Created folder" not in result.output
+    assert (case1_copy / "sum-figs" / "FOPR_date.png").exists()
+
+
+def test_save_goes_inside_the_first_of_several_folders(data_dir, tmp_path, runner):
+    main_dir = tmp_path / "main"
+    restart_dir = tmp_path / "restart"
+    for folder, name in ((main_dir, "SPE1CASE2"), (restart_dir, "SPE1CASE2_RESTART_60")):
+        folder.mkdir()
+        for ext in (".SMSPEC", ".UNSMRY"):
+            shutil.copy(data_dir / "SPE1CASE2" / f"{name}{ext}", folder / f"CASE{ext}")
+
+    result = runner.invoke(
+        main, ["-f", str(main_dir), "-f", str(restart_dir), "-K", "FOPR", "-s"]
+    )
+
+    assert result.exit_code == 0, result.output
+    assert (main_dir / "sum-figs" / "FOPR_date.png").exists()
+    assert not (restart_dir / "sum-figs").exists()
+
+
+def test_save_folder_implies_save_and_creates_nested_folders(case1_dir, runner, tmp_path):
+    folder = tmp_path / "plots" / "rates"
+    result = runner.invoke(main, ["-f", case1_dir, "-K", "FOPR", "-sf", str(folder)])
+
+    assert result.exit_code == 0, result.output
+    assert f"Created folder {folder}" in result.output
+    assert (folder / "FOPR_date.png").exists()
+
+
+def test_save_folder_that_is_a_file_is_rejected(case1_dir, runner, tmp_path):
+    existing = tmp_path / "afile"
+    existing.touch()
+    result = runner.invoke(main, ["-f", case1_dir, "-K", "FOPR", "-sf", str(existing)])
+
+    assert result.exit_code != 0
+    assert "is a file" in result.output

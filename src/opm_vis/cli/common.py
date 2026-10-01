@@ -86,15 +86,51 @@ SLICE_OPTIONS = [
 SAVE_OPTION = click.option(
     "--save",
     "-s",
-    is_flag=False,
-    flag_value="",
-    default=None,
-    metavar="[PATH]",
-    help=(
-        "Save to file instead of opening an interactive window. If PATH is omitted, a name is "
-        "generated from what is being plotted."
-    ),
+    is_flag=True,
+    default=False,
+    help="Save to a file instead of opening an interactive window. The file name is generated "
+    "from what is being plotted, in --save-folder.",
 )
+
+
+
+def save_folder_option(figure_folder: str, animation_folder: str | None = None) -> Callable:
+    """
+    Build the --save-folder option, whose default folder names differ per program
+
+    Parameters
+    ----------
+    figure_folder : str
+        Default folder name for still images, e.g. "pv-figs"
+    animation_folder : str | None, optional
+        Default folder name for animations, e.g. "pv-gifs", by default None for a program
+        that does not animate
+
+    Returns
+    -------
+    Callable
+        The click.option decorator
+
+    Notes
+    -----
+    Given on its own, --save-folder implies --save: naming a folder to save to is a clear
+    enough request to save. click.Path(file_okay=False) rejects an existing file; a missing
+    folder is fine, since save_path() creates it.
+    """
+    defaults = f"{figure_folder}/" + (
+        f" for an image, {animation_folder}/ for an animation" if animation_folder else ""
+    )
+    return click.option(
+        "--save-folder",
+        "-sf",
+        "save_folder",
+        type=click.Path(file_okay=False),
+        default=None,
+        metavar="DIR",
+        help=f"Folder to save to, created if it does not exist. Implies --save. Default: "
+        f"{defaults}, inside the first -f/--folder (the current folder if none is given).",
+    )
+
 
 CMAP_OPTION = click.option(
     "--cmap", default="viridis", show_default=True, help="Matplotlib colour map name."
@@ -246,6 +282,70 @@ def add_options(options: Sequence[Callable]) -> Callable:
         return func
 
     return _add_options
+
+
+def wants_save(save: bool, save_folder: str | None) -> bool:
+    """
+    Whether to save to a file rather than open an interactive window
+
+    Parameters
+    ----------
+    save : bool
+        Value of --save
+    save_folder : str | None
+        Value of --save-folder, which implies --save
+
+    Returns
+    -------
+    bool
+        True if either was given
+    """
+    return save or save_folder is not None
+
+
+def save_path(
+    save_folder: str | None, filename: str, *, folders: Sequence[str], default: str
+) -> Path:
+    """
+    Path to save a figure or animation to, creating its folder if needed
+
+    Parameters
+    ----------
+    save_folder : str | None
+        Value of --save-folder, or None for the default folder
+    filename : str
+        File name, e.g. as default_output_name generates it
+    folders : Sequence[str]
+        Value of --folder. The default folder goes inside the first one - the main run's -
+        or inside the current folder if none was given
+    default : str
+        Default folder name, e.g. "pv-figs"
+
+    Returns
+    -------
+    Path
+        save_folder/filename, or folders[0]/default/filename if save_folder is None
+
+    Raises
+    ------
+    click.UsageError
+        If the folder exists as a file instead
+    """
+    if save_folder is not None:
+        folder = Path(save_folder)
+    else:
+        folder = Path(folders[0] if folders else ".") / default
+
+    if not folder.is_dir():
+        try:
+            folder.mkdir(parents=True)
+        except FileExistsError as exc:
+            raise click.UsageError(
+                f"Cannot save to {folder}: it exists, but is not a folder."
+            ) from exc
+        click.echo(f"Created folder {folder}")
+
+    return folder / filename
 
 
 def resolve_paths(folders: tuple[str, ...]) -> list[str]:
@@ -777,7 +877,7 @@ def default_output_name(
     calc_end: int | None = None,
 ) -> str:
     """
-    Build an output filename when --save is given with no path
+    Build the output file name for --save
 
     Parameters
     ----------
@@ -811,8 +911,8 @@ def default_output_name(
     -------
     str
         e.g. "SGAS_k1_r60.png", "SGAS_k1_j6_r0-120.gif", "SGAS-diff0-absolute_k1_r60.png" with
-        --diff, or "SGAS-mean_k1-3_r60.png" with --calculator aggregating layers 1-3, written to
-        the current directory
+        --diff, or "SGAS-mean_k1-3_r60.png" with --calculator aggregating layers 1-3, saved in
+        --save-folder (see save_path)
 
     Notes
     -----
@@ -860,7 +960,7 @@ def default_summary_output_name(
     ext: str = "png",
 ) -> str:
     """
-    Build an output filename for opm-vis-sum when --save is given with no path
+    Build the output file name for opm-vis-sum's --save
 
     Parameters
     ----------
@@ -878,7 +978,8 @@ def default_summary_output_name(
     -------
     str
         e.g. "FOPR_date.png", "WOPR-INJ_WOPR-PROD_years.png", "FOPR_compare_date.png" or
-        "FGOR_FOPR_WBHP-INJ_and19more_date.png", written to the current directory
+        "FGOR_FOPR_WBHP-INJ_and19more_date.png", saved in --save-folder (see
+        save_path)
 
     Notes
     -----

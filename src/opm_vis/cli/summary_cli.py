@@ -20,9 +20,15 @@ from opm_vis.cli.common import (
     resolve_paths,
     resolve_subplot_layout,
     resolve_summary_keywords,
+    save_folder_option,
+    save_path,
+    wants_save,
 )
 from opm_vis.plot.plot_summary import LINE_STYLES, X_AXES, SummaryPlot, resolve_curve_option
 from opm_vis.utils.summary import SummaryReader
+
+# Default --save-folder names, inside the first -f/--folder
+_FIGURE_FOLDER = "sum-figs"
 
 # --xlim's date form, matching the ISO-8601 dates opm-vis-rdates prints in csv/json: on a
 # command line an unambiguous, sortable date matters more than matching the dd.mm.yyyy the plot
@@ -256,9 +262,9 @@ def _parse_xlim(raw: tuple[str, str] | None, x_axis: str) -> tuple[Any, Any] | N
     "keyword, or one per case under --compare. Repeatable.",
 )
 # Independent of --save: --export writes the plotted data itself, not an image of it, so both
-# can be given together to get a PNG and a CSV from one invocation. Three states, the same
-# mechanism as --save: not given (no export), given with no value (print to stdout, since a
-# CSV - unlike an image - is as useful on the terminal as in a file), given a path (write there).
+# can be given together to get a PNG and a CSV from one invocation. Three states: not given (no
+# export), given with no value (print to stdout, since a CSV - unlike an image - is as useful on
+# the terminal as in a file), given a path (write there).
 @click.option(
     "--export",
     "-e",
@@ -271,6 +277,7 @@ def _parse_xlim(raw: tuple[str, str] | None, x_axis: str) -> tuple[Any, Any] | N
     "write files.",
 )
 @SAVE_OPTION
+@save_folder_option(_FIGURE_FOLDER)
 @handle_errors
 # pylint: disable=too-many-arguments,too-many-locals
 def main(
@@ -293,7 +300,8 @@ def main(
     marker: tuple[str, ...],
     color: tuple[str, ...],
     export: str | None,
-    save: str | None,
+    save: bool,
+    save_folder: str | None,
 ) -> None:
     """
     Plot summary vectors - the time series in a case's .SMSPEC/.UNSMRY files - such as FOPR,
@@ -388,13 +396,16 @@ def main(
         color=color,
     )
 
-    if save is None:
+    if not wants_save(save, save_folder):
         plot.show()
     else:
         plot.save_plot(
-            Path(save)
-            if save
-            else default_summary_output_name(selected, x_axis=x_axis, compare=compare)
+            save_path(
+                save_folder,
+                default_summary_output_name(selected, x_axis=x_axis, compare=compare),
+                folders=folders,
+                default=_FIGURE_FOLDER,
+            )
         )
 
 

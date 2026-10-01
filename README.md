@@ -17,14 +17,14 @@ Usage guide and API reference: https://norce-energy.github.io/opm-vis/
 Plot a keyword on a grid slice without writing any Python:
 
 ```bash
-opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 -r 60 --save sgas_k1.png
+opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 -r 60 --save
 ```
 
 Plot summary vectors (time series) from the case's `.SMSPEC`/`.UNSMRY` files, one line per
 vector or one subplot each:
 
 ```bash
-opm-vis-sum -f tests/data/SPE1CASE1 -K FOPR -K 'WBHP:*' --subplots --save rates.png
+opm-vis-sum -f tests/data/SPE1CASE1 -K FOPR -K 'WBHP:*' --subplots --save
 ```
 
 List the case's report steps with their dates and the time since the simulation started:

@@ -4,13 +4,13 @@ Output
 ``--save``, ``-s``
 --------------------
 
-Saves to file instead of opening an interactive window. Given a path, the plot is written there;
-given with no path at all, a name is generated from the selected vectors, ``--compare`` and
-``--x-axis``.
+Saves to a file instead of opening an interactive window, in ``sum-figs/`` inside the case's
+``-f``/``--folder`` (the first one, if several are given; the current folder if none), unless
+``--save-folder`` says otherwise. The file name is generated from the selected vectors,
+``--compare`` and ``--x-axis``.
 
 .. code-block:: bash
 
-   opm-vis-sum -f tests/data/SPE1CASE1 -K FOPR --save rates.png
    opm-vis-sum -f tests/data/SPE1CASE1 -K FOPR --save
 
 The generated name spells out at most three vectors and then counts the rest, and replaces the
@@ -28,8 +28,16 @@ name:
 ``--subplots``, ``--layout`` and the axis limits are deliberately not part of the name: they
 change how the same data is laid out, not what it is.
 
-The file format follows the extension, as Matplotlib reads it - ``.png``, ``.pdf`` and ``.svg``
-all work.
+``--save-folder``, ``-sf``
+---------------------------
+
+Folder to save to, instead of the default ``sum-figs/`` inside the case folder. A relative path
+is taken from the current folder, not the case folder. Giving it implies ``--save``. A folder that does not exist yet is created, along with any missing parent folders,
+and the program prints ``Created folder <path>`` when it does so.
+
+.. code-block:: bash
+
+   opm-vis-sum -f tests/data/SPE1CASE1 -K FOPR -sf results/plots
 
 ``--export``, ``-e``
 -----------------------
@@ -40,7 +48,7 @@ data from one invocation, or ``--export`` alone to skip the image entirely.
 .. code-block:: bash
 
    opm-vis-sum -f tests/data/SPE1CASE1 -K FOPR -K FGOR --export rates.csv
-   opm-vis-sum -f tests/data/SPE1CASE1 -K FOPR --export --save rates.png
+   opm-vis-sum -f tests/data/SPE1CASE1 -K FOPR --export rates.csv --save
 
 Given with no path at all, the CSV is printed to standard output instead of being written to a
 file - useful for piping straight into another tool:

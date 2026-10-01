@@ -20,20 +20,20 @@ def runner() -> CliRunner:
 
 def test_single_frame_writes_output_file(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "sgas.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
-        main, ["-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "-s", str(output)]
+        main, ["-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "-sf", str(output)]
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
-    assert output.stat().st_size > 0
+    assert any(output.iterdir())
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_animate_writes_output_file(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "sgas.gif"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
@@ -46,19 +46,19 @@ def test_animate_writes_output_file(case1_dir, offscreen, runner, tmp_path):
             "--animate",
             "--rstep",
             "0:20",
-            "-s",
+            "-sf",
             str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
-    assert output.stat().st_size > 0
+    assert any(output.iterdir())
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_animate_range_with_step(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "sgas.gif"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
@@ -71,14 +71,14 @@ def test_animate_range_with_step(case1_dir, offscreen, runner, tmp_path):
             "--animate",
             "--rstep",
             "0:60:10",
-            "-s",
+            "-sf",
             str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
-    assert output.stat().st_size > 0
+    assert any(output.iterdir())
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_animate_without_save_plays_instead_of_writing_a_file(case1_dir, runner, monkeypatch):
@@ -107,13 +107,13 @@ def test_animate_without_save_plays_instead_of_writing_a_file(case1_dir, runner,
 
 def test_static_keyword_does_not_need_rstep(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "poro.png"
+    output = tmp_path / "out"
 
-    result = runner.invoke(main, ["-f", case1_dir, "--keyword", "PORO", "-k", "1", "-s", str(output)])
+    result = runner.invoke(main, ["-f", case1_dir, "--keyword", "PORO", "-k", "1", "-sf", str(output)])
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
-    assert output.stat().st_size > 0
+    assert any(output.iterdir())
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_dynamic_keyword_without_rstep_or_animate_is_rejected(case1_dir, runner):
@@ -128,7 +128,7 @@ def test_save_with_no_path_generates_a_name(case1_dir, offscreen, runner):
 
     with runner.isolated_filesystem():
         result = runner.invoke(
-            main, ["-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "--save"]
+            main, ["-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "-sf", "."]
         )
 
         assert result.exit_code == 0, result.output
@@ -142,16 +142,16 @@ def test_save_with_no_path_generates_a_name(case1_dir, offscreen, runner):
 
 def test_diff_writes_output_file(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "sgas.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
-        ["-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "--diff", "-s", str(output)],
+        ["-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "--diff", "-sf", str(output)],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
-    assert output.stat().st_size > 0
+    assert any(output.iterdir())
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_diff_default_name_reflects_diff_rstep_and_kind(case1_dir, offscreen, runner):
@@ -173,7 +173,7 @@ def test_diff_default_name_reflects_diff_rstep_and_kind(case1_dir, offscreen, ru
                 "0",
                 "--diff-kind",
                 "relative",
-                "--save",
+                "-sf", ".",
             ],
         )
 
@@ -183,7 +183,7 @@ def test_diff_default_name_reflects_diff_rstep_and_kind(case1_dir, offscreen, ru
 
 def test_diff_animate_writes_output_file(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "sgas.gif"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
@@ -197,14 +197,14 @@ def test_diff_animate_writes_output_file(case1_dir, offscreen, runner, tmp_path)
             "--rstep",
             "0:60:20",
             "--diff",
-            "-s",
+            "-sf",
             str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
-    assert output.stat().st_size > 0
+    assert any(output.iterdir())
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_diff_kind_is_rejected_when_not_one_of_the_three(case1_dir, runner):
@@ -235,16 +235,16 @@ def test_diff_kind_is_rejected_when_not_one_of_the_three(case1_dir, runner):
 
 def test_calculator_writes_output_file(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "sgas.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
-        ["-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "-c", "mean", "-s", str(output)],
+        ["-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "-c", "mean", "-sf", str(output)],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
-    assert output.stat().st_size > 0
+    assert any(output.iterdir())
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_calculator_default_name_reflects_calc_kind(case1_dir, offscreen, runner):
@@ -253,7 +253,7 @@ def test_calculator_default_name_reflects_calc_kind(case1_dir, offscreen, runner
     with runner.isolated_filesystem():
         result = runner.invoke(
             main,
-            ["-f", case1_dir, "--keyword", "PRESSURE", "-k", "1", "--rstep", "60", "-c", "sum", "--save"],
+            ["-f", case1_dir, "--keyword", "PRESSURE", "-k", "1", "--rstep", "60", "-c", "sum", "-sf", "."],
         )
 
         assert result.exit_code == 0, result.output
@@ -279,7 +279,7 @@ def test_calculator_default_name_reflects_calc_count(case1_dir, offscreen, runne
                 "sum",
                 "--calc-count",
                 "1",
-                "--save",
+                "-sf", ".",
             ],
         )
 
@@ -290,7 +290,7 @@ def test_calculator_default_name_reflects_calc_count(case1_dir, offscreen, runne
 
 def test_calculator_with_calc_count_writes_output_file(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "sgas.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
@@ -306,19 +306,19 @@ def test_calculator_with_calc_count_writes_output_file(case1_dir, offscreen, run
             "mean",
             "--calc-count",
             "2",
-            "-s",
+            "-sf",
             str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
-    assert output.stat().st_size > 0
+    assert any(output.iterdir())
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_calculator_combines_with_diff(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "pressure.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
@@ -335,19 +335,19 @@ def test_calculator_combines_with_diff(case1_dir, offscreen, runner, tmp_path):
             "--diff",
             "--diff-rstep",
             "0",
-            "-s",
+            "-sf",
             str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
-    assert output.stat().st_size > 0
+    assert any(output.iterdir())
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_calculator_animate_writes_output_file(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "sgas.gif"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
@@ -362,14 +362,14 @@ def test_calculator_animate_writes_output_file(case1_dir, offscreen, runner, tmp
             "0:60:20",
             "-c",
             "mean",
-            "-s",
+            "-sf",
             str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
-    assert output.stat().st_size > 0
+    assert any(output.iterdir())
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_calculator_requires_a_slice(case1_dir, runner):
@@ -463,36 +463,36 @@ def test_calculator_kind_is_rejected_when_unknown(case1_dir, runner):
 
 def test_calculator_surface_writes_output_file(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "sgas.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
         [
-            "-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "-c", "surface", "-s",
+            "-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "-c", "surface", "-sf",
             str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
-    assert output.stat().st_size > 0
+    assert any(output.iterdir())
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_calculator_surface_with_quads_writes_output_file(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "sgas.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
         [
             "-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60", "-c", "surface", "--quads",
-            "-s", str(output),
+            "-sf", str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
-    assert output.stat().st_size > 0
+    assert any(output.iterdir())
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_calculator_surface_default_name_reflects_calc_kind(case1_dir, offscreen, runner):
@@ -501,7 +501,7 @@ def test_calculator_surface_default_name_reflects_calc_kind(case1_dir, offscreen
     with runner.isolated_filesystem():
         result = runner.invoke(
             main,
-            ["-f", case1_dir, "--keyword", "PRESSURE", "-k", "1", "--rstep", "60", "-c", "surface", "--save"],
+            ["-f", case1_dir, "--keyword", "PRESSURE", "-k", "1", "--rstep", "60", "-c", "surface", "-sf", "."],
         )
 
         assert result.exit_code == 0, result.output
@@ -516,15 +516,15 @@ def test_calculator_surface_default_name_reflects_calc_kind(case1_dir, offscreen
 
 def test_grid_only_writes_output_file(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "grid.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
-        main, ["-f", case1_dir, "-k", "1", "--grid-only", "-s", str(output)]
+        main, ["-f", case1_dir, "-k", "1", "--grid-only", "-sf", str(output)]
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
-    assert output.stat().st_size > 0
+    assert any(output.iterdir())
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_grid_only_works_with_no_restart_files(data_dir, offscreen, runner, tmp_path):
@@ -532,46 +532,46 @@ def test_grid_only_works_with_no_restart_files(data_dir, offscreen, runner, tmp_
     del offscreen
     shutil.copy(data_dir / "SPE1CASE1" / "SPE1CASE1.EGRID", tmp_path / "CASE.EGRID")
     shutil.copy(data_dir / "SPE1CASE1" / "SPE1CASE1.INIT", tmp_path / "CASE.INIT")
-    output = tmp_path / "grid.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
-        main, ["-f", str(tmp_path), "-k", "1", "--grid-only", "-s", str(output)]
+        main, ["-f", str(tmp_path), "-k", "1", "--grid-only", "-sf", str(output)]
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
+    assert any(output.iterdir())
 
 
 def test_grid_only_plots_the_whole_grid_without_a_slice(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "grid.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
-        main, ["-f", case1_dir, "--grid-only", "--view", "3d", "-s", str(output)]
+        main, ["-f", case1_dir, "--grid-only", "--view", "3d", "-sf", str(output)]
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
-    assert output.stat().st_size > 0
+    assert any(output.iterdir())
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_grid_only_accepts_a_custom_color(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "grid.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
-        main, ["-f", case1_dir, "-k", "1", "--grid-only", "--grid-color", "tan", "-s", str(output)]
+        main, ["-f", case1_dir, "-k", "1", "--grid-only", "--grid-color", "tan", "-sf", str(output)]
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
+    assert any(output.iterdir())
 
 
 def test_grid_only_default_output_name_uses_grid_tag(case1_dir, offscreen, runner):
     del offscreen
 
     with runner.isolated_filesystem():
-        result = runner.invoke(main, ["-f", case1_dir, "-k", "1", "--grid-only", "--save"])
+        result = runner.invoke(main, ["-f", case1_dir, "-k", "1", "--grid-only", "-sf", "."])
 
         assert result.exit_code == 0, result.output
         assert Path("GRID_k1_r0.png").exists()
@@ -584,7 +584,7 @@ def test_grid_only_default_output_name_uses_grid_tag(case1_dir, offscreen, runne
 
 def test_show_edges_writes_output_file(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "edges.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
@@ -597,26 +597,26 @@ def test_show_edges_writes_output_file(case1_dir, offscreen, runner, tmp_path):
             "--rstep",
             "60",
             "--show-edges",
-            "-s",
+            "-sf",
             str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
-    assert output.stat().st_size > 0
+    assert any(output.iterdir())
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_show_edges_works_with_grid_only(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "edges.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
-        main, ["-f", case1_dir, "-k", "1", "--grid-only", "--show-edges", "-s", str(output)]
+        main, ["-f", case1_dir, "-k", "1", "--grid-only", "--show-edges", "-sf", str(output)]
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
+    assert any(output.iterdir())
 
 
 # ---------------------------------------------------------------------------
@@ -626,7 +626,7 @@ def test_show_edges_works_with_grid_only(case1_dir, offscreen, runner, tmp_path)
 
 def test_threshold_writes_output_file(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "threshold.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
@@ -640,19 +640,19 @@ def test_threshold_writes_output_file(case1_dir, offscreen, runner, tmp_path):
             "3d",
             "--threshold",
             "0.1",
-            "-s",
+            "-sf",
             str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
-    assert output.stat().st_size > 0
+    assert any(output.iterdir())
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_threshold_accepts_a_low_high_range(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "threshold.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
@@ -666,18 +666,18 @@ def test_threshold_accepts_a_low_high_range(case1_dir, offscreen, runner, tmp_pa
             "3d",
             "--threshold",
             "0.1:0.5",
-            "-s",
+            "-sf",
             str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
+    assert any(output.iterdir())
 
 
 def test_threshold_invert_writes_output_file(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "threshold.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
@@ -692,13 +692,13 @@ def test_threshold_invert_writes_output_file(case1_dir, offscreen, runner, tmp_p
             "--threshold",
             "0.1",
             "--threshold-invert",
-            "-s",
+            "-sf",
             str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
+    assert any(output.iterdir())
 
 
 def test_threshold_default_output_name_uses_threshold_tag(case1_dir, offscreen, runner):
@@ -717,7 +717,7 @@ def test_threshold_default_output_name_uses_threshold_tag(case1_dir, offscreen, 
                 "3d",
                 "--threshold",
                 "0.1",
-                "--save",
+                "-sf", ".",
             ],
         )
 
@@ -788,7 +788,7 @@ def test_threshold_rejects_too_many_colon_parts(case1_dir, runner):
 
 def test_clip_writes_output_file(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "clip.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
@@ -802,19 +802,19 @@ def test_clip_writes_output_file(case1_dir, offscreen, runner, tmp_path):
             "3d",
             "--clip",
             "x",
-            "-s",
+            "-sf",
             str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
-    assert output.stat().st_size > 0
+    assert any(output.iterdir())
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_clip_accepts_origin_invert_and_crinkle(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "clip.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
@@ -834,30 +834,30 @@ def test_clip_accepts_origin_invert_and_crinkle(case1_dir, offscreen, runner, tm
             "8350",
             "--no-clip-invert",
             "--clip-crinkle",
-            "-s",
+            "-sf",
             str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
+    assert any(output.iterdir())
 
 
 def test_clip_works_with_grid_only(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "clip.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
-        main, ["-f", case1_dir, "--grid-only", "--view", "3d", "--clip", "z", "-s", str(output)]
+        main, ["-f", case1_dir, "--grid-only", "--view", "3d", "--clip", "z", "-sf", str(output)]
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
+    assert any(output.iterdir())
 
 
 def test_clip_and_threshold_can_be_combined(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "clip.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
@@ -873,18 +873,18 @@ def test_clip_and_threshold_can_be_combined(case1_dir, offscreen, runner, tmp_pa
             "x",
             "--threshold",
             "0.05",
-            "-s",
+            "-sf",
             str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
+    assert any(output.iterdir())
 
 
 def test_clip_works_with_animate(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "clip.gif"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
@@ -899,14 +899,14 @@ def test_clip_works_with_animate(case1_dir, offscreen, runner, tmp_path):
             "3d",
             "--clip",
             "x",
-            "-s",
+            "-sf",
             str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
-    assert output.stat().st_size > 0
+    assert any(output.iterdir())
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_clip_default_output_name_uses_clip_tag(case1_dir, offscreen, runner):
@@ -925,7 +925,7 @@ def test_clip_default_output_name_uses_clip_tag(case1_dir, offscreen, runner):
                 "3d",
                 "--clip",
                 "x",
-                "--save",
+                "-sf", ".",
             ],
         )
 
@@ -951,7 +951,7 @@ def test_clip_and_threshold_default_output_name_combines_both_tags(case1_dir, of
                 "x",
                 "--threshold",
                 "0.05",
-                "--save",
+                "-sf", ".",
             ],
         )
 
@@ -1013,7 +1013,7 @@ def test_paths_default_to_the_working_directory(data_dir, offscreen, runner, tmp
     result = runner.invoke(main, ["--keyword", "SGAS", "-k", "1", "--rstep", "60", "-s"])
 
     assert result.exit_code == 0, result.output
-    assert (case_dir / "SGAS_k1_r60.png").exists()
+    assert (case_dir / "pv-figs" / "SGAS_k1_r60.png").exists()
 
 
 def test_no_slice_with_default_2d_view_is_rejected(case1_dir, runner):
@@ -1041,16 +1041,16 @@ def test_no_slice_with_quads_is_rejected(case1_dir, runner):
 
 def test_no_slice_with_3d_view_plots_the_whole_grid(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "sgas.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
-        ["-f", case1_dir, "--keyword", "SGAS", "--rstep", "60", "--view", "3d", "-s", str(output)],
+        ["-f", case1_dir, "--keyword", "SGAS", "--rstep", "60", "--view", "3d", "-sf", str(output)],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
-    assert output.stat().st_size > 0
+    assert any(output.iterdir())
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_no_slice_default_output_name_uses_grid_tag(case1_dir, offscreen, runner):
@@ -1059,7 +1059,7 @@ def test_no_slice_default_output_name_uses_grid_tag(case1_dir, offscreen, runner
     with runner.isolated_filesystem():
         result = runner.invoke(
             main,
-            ["-f", case1_dir, "--keyword", "SGAS", "--rstep", "60", "--view", "3d", "--save"],
+            ["-f", case1_dir, "--keyword", "SGAS", "--rstep", "60", "--view", "3d", "-sf", "."],
         )
 
         assert result.exit_code == 0, result.output
@@ -1068,7 +1068,7 @@ def test_no_slice_default_output_name_uses_grid_tag(case1_dir, offscreen, runner
 
 def test_no_slice_animates_the_whole_grid(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "sgas.gif"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
@@ -1081,20 +1081,20 @@ def test_no_slice_animates_the_whole_grid(case1_dir, offscreen, runner, tmp_path
             "0:60:20",
             "--view",
             "3d",
-            "-s",
+            "-sf",
             str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
-    assert output.stat().st_size > 0
+    assert any(output.iterdir())
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_no_slice_draws_every_well_without_needing_all_wells(case1_dir, offscreen, runner, tmp_path):
     # No slices to restrict to, so every well should be drawn even without --all-wells
     del offscreen
-    output = tmp_path / "sgas.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
@@ -1107,18 +1107,18 @@ def test_no_slice_draws_every_well_without_needing_all_wells(case1_dir, offscree
             "--view",
             "3d",
             "--wells",
-            "-s",
+            "-sf",
             str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
+    assert any(output.iterdir())
 
 
 def test_no_slice_with_glyphs_writes_output_file(tpsa_lagged_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "disp.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
@@ -1134,19 +1134,19 @@ def test_no_slice_with_glyphs_writes_output_file(tpsa_lagged_dir, offscreen, run
             "DISPX",
             "DISPY",
             "DISPZ",
-            "-s",
+            "-sf",
             str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
-    assert output.stat().st_size > 0
+    assert any(output.iterdir())
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_glyphs_prefix_expands_to_xyz_components(tpsa_lagged_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "disp.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
@@ -1160,14 +1160,14 @@ def test_glyphs_prefix_expands_to_xyz_components(tpsa_lagged_dir, offscreen, run
             "15",
             "--glyphs",
             "DISP",
-            "-s",
+            "-sf",
             str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
-    assert output.stat().st_size > 0
+    assert any(output.iterdir())
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_glyphs_with_two_values_is_rejected(tpsa_lagged_dir, runner):
@@ -1200,7 +1200,7 @@ def test_duplicate_slice_is_rejected(case1_dir, runner):
 
 def test_glyph_every_n_writes_output_file(tpsa_lagged_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "disp.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
@@ -1218,14 +1218,14 @@ def test_glyph_every_n_writes_output_file(tpsa_lagged_dir, offscreen, runner, tm
             "DISPZ",
             "--glyph-every-n",
             "2",
-            "-s",
+            "-sf",
             str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
-    assert output.stat().st_size > 0
+    assert any(output.iterdir())
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_glyph_every_n_rejects_less_than_one(tpsa_lagged_dir, runner):
@@ -1254,7 +1254,7 @@ def test_glyph_every_n_rejects_less_than_one(tpsa_lagged_dir, runner):
 
 def test_multiple_slices_with_3d_view_writes_output_file(case1_dir, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "sgas.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
@@ -1270,14 +1270,14 @@ def test_multiple_slices_with_3d_view_writes_output_file(case1_dir, offscreen, r
             "60",
             "--view",
             "3d",
-            "-s",
+            "-sf",
             str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
-    assert output.stat().st_size > 0
+    assert any(output.iterdir())
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_default_output_name_joins_multiple_slice_tags(case1_dir, offscreen, runner):
@@ -1298,7 +1298,7 @@ def test_default_output_name_joins_multiple_slice_tags(case1_dir, offscreen, run
                 "60",
                 "--view",
                 "3d",
-                "-s",
+                "-sf", ".",
             ],
         )
 
@@ -1310,7 +1310,7 @@ def test_wells_union_across_multiple_slices(case1_dir, offscreen, runner, tmp_pa
     # SPE1CASE1's INJ is completed at k=0, PROD at k=2 (0-based) - requesting both slices
     # (-k 1 -k 3, 1-based) should draw both wells, not just whichever is checked first
     del offscreen
-    output = tmp_path / "sgas.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
@@ -1326,13 +1326,13 @@ def test_wells_union_across_multiple_slices(case1_dir, offscreen, runner, tmp_pa
             "60",
             "--view",
             "3d",
-            "-s",
+            "-sf",
             str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
+    assert any(output.iterdir())
 
 
 def test_rstep_range_requires_animate(case1_dir, runner):
@@ -1379,8 +1379,8 @@ def test_unknown_keyword_is_a_clean_error(case1_dir, offscreen, runner, tmp_path
             "1",
             "--rstep",
             "60",
-            "-s",
-            str(tmp_path / "x.png"),
+            "-sf",
+            str(tmp_path),
         ],
     )
 
@@ -1409,34 +1409,34 @@ FAULTS
 
 def test_fault_draws_the_fault_surface(case1_dir, fault_file, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "sgas.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
         [
             "-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60",
-            "--fault", fault_file, "-s", str(output),
+            "--fault", fault_file, "-sf", str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
+    assert any(output.iterdir())
 
 
 def test_fault_name_restricts_to_the_given_fault(case1_dir, fault_file, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "sgas.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
         [
             "-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60",
-            "--fault", fault_file, "--fault-name", "FAULT1", "-s", str(output),
+            "--fault", fault_file, "--fault-name", "FAULT1", "-sf", str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
+    assert any(output.iterdir())
 
 
 def test_fault_name_unknown_fault_is_a_clean_error(case1_dir, fault_file, runner, tmp_path):
@@ -1444,7 +1444,7 @@ def test_fault_name_unknown_fault_is_a_clean_error(case1_dir, fault_file, runner
         main,
         [
             "-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60",
-            "--fault", fault_file, "--fault-name", "NOPE", "-s", str(tmp_path / "x.png"),
+            "--fault", fault_file, "--fault-name", "NOPE", "-sf", str(tmp_path),
         ],
     )
 
@@ -1464,18 +1464,18 @@ def test_fault_name_without_fault_is_rejected(case1_dir, runner):
 
 def test_fault_with_no_slice_draws_every_fault(case1_dir, fault_file, offscreen, runner, tmp_path):
     del offscreen
-    output = tmp_path / "sgas.png"
+    output = tmp_path / "out"
 
     result = runner.invoke(
         main,
         [
             "-f", case1_dir, "--keyword", "SGAS", "--rstep", "60", "--view", "3d",
-            "--fault", fault_file, "-s", str(output),
+            "--fault", fault_file, "-sf", str(output),
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert output.exists()
+    assert any(output.iterdir())
 
 
 def test_fault_missing_file_is_a_clean_error(case1_dir, runner, tmp_path):
@@ -1483,7 +1483,7 @@ def test_fault_missing_file_is_a_clean_error(case1_dir, runner, tmp_path):
         main,
         [
             "-f", case1_dir, "--keyword", "SGAS", "-k", "1", "--rstep", "60",
-            "--fault", str(tmp_path / "NOPE.DATA"), "-s", str(tmp_path / "x.png"),
+            "--fault", str(tmp_path / "NOPE.DATA"), "-sf", str(tmp_path),
         ],
     )
 
@@ -1510,13 +1510,13 @@ def dry_run_dir(data_dir, tmp_path):
 )
 def test_init_keyword_plots_with_no_restart_files(dry_run_dir, offscreen, runner, extra):
     del offscreen
-    output = dry_run_dir / "static.png"
+    output = dry_run_dir / "out"
 
     with pytest.warns(UserWarning, match="No .UNRST or .X files"):
-        result = runner.invoke(main, ["-f", str(dry_run_dir), *extra, "-s", str(output)])
+        result = runner.invoke(main, ["-f", str(dry_run_dir), *extra, "-sf", str(output)])
 
     assert result.exit_code == 0, result.output
-    assert output.stat().st_size > 0
+    assert all(f.stat().st_size > 0 for f in output.iterdir())
 
 
 def test_restart_keyword_with_no_restart_files_is_a_clean_error(dry_run_dir, runner):
@@ -1534,3 +1534,20 @@ def test_diff_with_no_restart_files_is_a_clean_error(dry_run_dir, runner):
 
     assert result.exit_code != 0
     assert "--diff needs restart data" in result.output
+
+
+def test_save_defaults_to_pv_folders_inside_the_case_folder(data_dir, offscreen, runner, tmp_path):
+    del offscreen
+    for source in (data_dir / "SPE1CASE1").glob("SPE1CASE1.*"):
+        shutil.copy(source, tmp_path / source.name)
+    args = ["-f", str(tmp_path), "-K", "SGAS", "-k", "1"]
+
+    image = runner.invoke(main, [*args, "-r", "60", "-s"])
+    animation = runner.invoke(main, [*args, "-r", "0:2", "--animate", "-s"])
+
+    assert image.exit_code == 0, image.output
+    assert animation.exit_code == 0, animation.output
+    assert f"Created folder {tmp_path / 'pv-figs'}" in image.output
+    assert f"Created folder {tmp_path / 'pv-gifs'}" in animation.output
+    assert (tmp_path / "pv-figs" / "SGAS_k1_r60.png").exists()
+    assert (tmp_path / "pv-gifs" / "SGAS_k1_r0-2.gif").exists()
