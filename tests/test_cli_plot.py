@@ -774,3 +774,46 @@ def test_fault_missing_file_is_a_clean_error(case1_dir, runner, tmp_path):
 
     assert result.exit_code != 0
     assert "Traceback" not in result.output
+
+
+@pytest.fixture
+def dry_run_dir(data_dir, tmp_path):
+    # A dry run: only .EGRID/.INIT exist yet, no .UNRST/.X files at all
+    shutil.copy(data_dir / "SPE1CASE1" / "SPE1CASE1.EGRID", tmp_path / "CASE.EGRID")
+    shutil.copy(data_dir / "SPE1CASE1" / "SPE1CASE1.INIT", tmp_path / "CASE.INIT")
+    return tmp_path
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        ["-K", "PERMX", "-k", "1"],
+        ["-K", "DEPTH", "-k", "1", "--view", "3d"],
+        ["-K", "PERMX", "-k", "1", "-c", "mean"],
+    ],
+)
+def test_init_keyword_plots_with_no_restart_files(dry_run_dir, runner, extra):
+    output = dry_run_dir / "static.png"
+
+    with pytest.warns(UserWarning, match="No .UNRST or .X files"):
+        result = runner.invoke(main, ["-f", str(dry_run_dir), *extra, "-s", str(output)])
+
+    assert result.exit_code == 0, result.output
+    assert output.stat().st_size > 0
+
+
+def test_restart_keyword_with_no_restart_files_is_a_clean_error(dry_run_dir, runner):
+    with pytest.warns(UserWarning, match="No .UNRST or .X files"):
+        result = runner.invoke(main, ["-f", str(dry_run_dir), "-K", "SGAS", "-k", "1"])
+
+    assert result.exit_code != 0
+    assert "SGAS is not in the .INIT file" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_diff_with_no_restart_files_is_a_clean_error(dry_run_dir, runner):
+    with pytest.warns(UserWarning, match="No .UNRST or .X files"):
+        result = runner.invoke(main, ["-f", str(dry_run_dir), "-K", "PERMX", "-k", "1", "-d"])
+
+    assert result.exit_code != 0
+    assert "--diff needs restart data" in result.output

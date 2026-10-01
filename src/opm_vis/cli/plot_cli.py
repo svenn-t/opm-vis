@@ -24,13 +24,12 @@ from opm_vis.cli.common import (
     default_output_name,
     grid_color_kwargs,
     handle_errors,
-    is_static_keyword,
     parse_rstep,
-    require_dynamic_keyword_error,
     resolve_animate_rsteps,
     resolve_calculator,
     resolve_diff_rstep,
     resolve_keyword,
+    resolve_keyword_rstep,
     resolve_paths,
     resolve_slices,
 )
@@ -247,13 +246,12 @@ def main(
     # guarantees a keyword here
     assert keyword is not None
 
-    if rstep_value is None:
-        probe_rstep = coll.report.report_steps()[0]
-        if not is_static_keyword(coll.slice_coll[0].restart, keyword, probe_rstep):
-            raise require_dynamic_keyword_error(keyword)
-        actual_rstep = probe_rstep
-    else:
-        actual_rstep = rstep_value
+    first_slice = coll.slice_coll[0]
+    actual_rstep = resolve_keyword_rstep(
+        keyword, rstep_value, coll.report.report_steps(), first_slice.restart, first_slice.static
+    )
+    if actual_rstep is None and resolved_diff_rstep is not None:
+        raise click.UsageError("--diff needs restart data, but this case has no report steps.")
 
     coll.plot(
         actual_rstep,

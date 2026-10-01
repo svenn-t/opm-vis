@@ -926,26 +926,60 @@ def require_dynamic_keyword_error(keyword: str) -> click.UsageError:
     )
 
 
-def is_static_keyword(restart_reader: Any, keyword: str, probe_rstep: int) -> bool:
+def resolve_keyword_rstep(
+    keyword: str,
+    rstep_value: int | None,
+    report_steps: Sequence[int],
+    restart_reader: Any,
+    init_reader: Any,
+) -> int | None:
     """
-    Check whether a keyword only exists in the .INIT file, i.e. never changes over time
+    Resolve the report step to read keyword at when no --animate was given
 
     Parameters
     ----------
+    keyword : str
+        OPM keyword being plotted
+    rstep_value : int | None
+        Parsed value of --rstep
+    report_steps : Sequence[int]
+        Every report step in the case's restart files, empty if it has none
     restart_reader : opm_vis.utils.restart.RestartReader
         Restart reader for the case
-    keyword : str
-        OPM keyword
-    probe_rstep : int
-        Report step to check availability at; any report step gives the same answer for a
-        genuinely static keyword
+    init_reader : opm_vis.utils.static.InitReader
+        .INIT reader for the case
 
     Returns
     -------
-    bool
-        True if the keyword is absent from the restart files at probe_rstep
+    int | None
+        rstep_value itself if given. Otherwise the case's first report step, once confirmed
+        that keyword does not change over time - defaulting silently would hide a keyword
+        that actually needs an explicit --rstep. None if the case has no report steps at all
+        (only .EGRID/.INIT, e.g. a dry run) and keyword is in its .INIT file, which the
+        readers take as "read the .INIT copy"
+
+    Raises
+    ------
+    click.UsageError
+        If rstep_value is None and keyword changes over time, or if the case has no report
+        steps and keyword is not in its .INIT file
     """
-    return keyword not in restart_reader.available_keywords(probe_rstep)
+    if rstep_value is not None:
+        return rstep_value
+
+    if not report_steps:
+        if keyword in init_reader.available_keywords():
+            return None
+        raise click.UsageError(
+            f"{keyword} is not in the .INIT file, and this case has no restart files (.UNRST "
+            "or .X) to read it from. Only .INIT keywords such as PERMX or DEPTH can be "
+            "plotted for a case that has not been run."
+        )
+
+    probe_rstep = report_steps[0]
+    if keyword in restart_reader.available_keywords(probe_rstep):
+        raise require_dynamic_keyword_error(keyword)
+    return probe_rstep
 
 
 def handle_errors(func: Callable) -> Callable:

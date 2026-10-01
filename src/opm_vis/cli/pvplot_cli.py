@@ -24,11 +24,11 @@ from opm_vis.cli.common import (
     grid_color_kwargs,
     handle_errors,
     parse_rstep,
-    require_dynamic_keyword_error,
     resolve_animate_rsteps,
     resolve_calculator,
     resolve_diff_rstep,
     resolve_keyword,
+    resolve_keyword_rstep,
     resolve_paths,
     resolve_slices,
 )
@@ -157,7 +157,9 @@ def _parse_threshold(raw: str | None) -> float | tuple[float, float] | None:
     return values[0] if len(values) == 1 else (values[0], values[1])
 
 
-def _resolve_actual_rstep(plotter: GridPlotter, keyword: str, rstep_value: int | None) -> int:
+def _resolve_actual_rstep(
+    plotter: GridPlotter, keyword: str, rstep_value: int | None
+) -> int | None:
     """
     Resolve the report step to read keyword at, requiring one if it changes over time
 
@@ -172,23 +174,14 @@ def _resolve_actual_rstep(plotter: GridPlotter, keyword: str, rstep_value: int |
 
     Returns
     -------
-    int
-        rstep_value itself if given, otherwise the case's first report step - only once
-        confirmed that keyword does not change over time, since defaulting silently would
-        otherwise hide a keyword that actually needs an explicit --rstep
-
-    Raises
-    ------
-    click.UsageError
-        If rstep_value is None and keyword changes over time
+    int | None
+        See resolve_keyword_rstep: None only for an .INIT keyword in a case with no restart
+        files
     """
-    if rstep_value is not None:
-        return rstep_value
-
-    probe_rstep = plotter.case.report.report_steps()[0]
-    if not plotter.case.is_static(keyword, probe_rstep):
-        raise require_dynamic_keyword_error(keyword)
-    return probe_rstep
+    case = plotter.case
+    return resolve_keyword_rstep(
+        keyword, rstep_value, case.report.report_steps(), case.restart, case.static
+    )
 
 
 def _wells_slices(
@@ -670,7 +663,8 @@ def main(
             else:
                 actual_rstep = report_steps[0] if report_steps else None
         elif threshold_value is not None:
-            assert threshold_rstep is not None  # resolved above, before add_threshold
+            # Resolved above, before add_threshold; None for an .INIT keyword in a case with no
+            # restart files
             actual_rstep = threshold_rstep
         else:
             # Not grid_only, so resolve_keyword guarantees a keyword here
@@ -679,9 +673,13 @@ def main(
 
         plotter.rstep = actual_rstep
         if not grid_only:
-            # keyword is required unless grid_only (checked by resolve_keyword), and only
-            # grid_only can leave actual_rstep unresolved
-            assert keyword is not None and actual_rstep is not None
+            # keyword is required unless grid_only (checked by resolve_keyword). actual_rstep
+            # is None for a case with no restart files, which is fine for an .INIT keyword
+            assert keyword is not None
+            if actual_rstep is None and resolved_diff_rstep is not None:
+                raise click.UsageError(
+                    "--diff needs restart data, but this case has no report steps."
+                )
             plotter.set_scalars(
                 keyword,
                 actual_rstep,

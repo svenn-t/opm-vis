@@ -348,7 +348,7 @@ class _SlicePolyCollection:
     # pylint: disable=too-many-arguments
     def plot(
         self,
-        rstep: int,
+        rstep: int | None,
         keyword: str,
         colorbar: bool = True,
         equal_clim: bool = True,
@@ -366,8 +366,9 @@ class _SlicePolyCollection:
 
         Parameters
         ----------
-        rstep : int
-            Report step
+        rstep : int | None
+            Report step, or None to show an .INIT keyword for a case with no restart files,
+            which leaves out the wells and the report-date title
         keyword : str
             OPM keyword to plot
         colorbar : bool
@@ -402,6 +403,8 @@ class _SlicePolyCollection:
         # If pre-generated polyc data have been inputted, we just add the correct one(s) for the
         # current report step
         if polyc_dict is not None:
+            # Only animate() passes polyc_dict, and it always plots real report steps
+            assert rstep is not None
             polyc_rstep = polyc_dict[rstep]
 
         # Else, generate data for each slice and add to axes collection
@@ -438,18 +441,17 @@ class _SlicePolyCollection:
         for polyc in polyc_rstep:
             self.add_collection(polyc)
 
-        # Plot wells
-        self.plot_wells(rstep)
-
-        # Add report date to plot list
-        rdate = self.report.report_date(rstep)
-        self.rdates.append(rdate)
-
         # Save keyword, for save_plot's filename; see _keyword_tag
         self.keyword = self._keyword_tag(keyword, diff_rstep, diff_kind, calc_kind)
 
-        # Set title
-        self.set_title(rdate)
+        # Wells and the date title both come from the restart files, which a case with no
+        # report steps does not have
+        if rstep is not None:
+            self.plot_wells(rstep)
+
+            rdate = self.report.report_date(rstep)
+            self.rdates.append(rdate)
+            self.set_title(rdate)
 
         # Set colorbar
         if colorbar is True:
@@ -721,11 +723,11 @@ class _SlicePolyCollection:
             raise RuntimeError("No plot to save! Run plot() method first.")
 
         if filename is None:
-            # Report date of plot
-            rdate_str = self.rdates[-1].strftime("%d-%m-%Y")
+            # Report date of plot; a static keyword in a case with no restart files has none
+            rdate_tag = f"_{self.rdates[-1].strftime('%d-%m-%Y')}" if self.rdates else ""
 
             filename = (
-                f"{self.paths[0]}{self.keyword}_{rdate_str}_{self._slice_info()}."
+                f"{self.paths[0]}{self.keyword}{rdate_tag}_{self._slice_info()}."
                 f"{file_format}"
             )
 

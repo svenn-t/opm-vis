@@ -413,7 +413,7 @@ class GridPlotter:
     def add_threshold(
         self,
         keyword: str,
-        rstep: int,
+        rstep: int | None,
         value: float | tuple[float, float],
         *,
         invert: bool = False,
@@ -427,8 +427,9 @@ class GridPlotter:
         ----------
         keyword : str
             OPM keyword to threshold on
-        rstep : int
-            Report step to take the values from
+        rstep : int | None
+            Report step to take the values from, or None for an .INIT keyword in a case with
+            no restart files
         value : float | tuple[float, float]
             Lower bound, or a (lower, upper) range
         invert : bool, optional
@@ -769,7 +770,7 @@ class GridPlotter:
     def set_scalars(
         self,
         keyword: str,
-        rstep: int,
+        rstep: int | None,
         *,
         clim: tuple[float, float] | None = None,
         cmap: str = "viridis",
@@ -789,8 +790,9 @@ class GridPlotter:
         ----------
         keyword : str
             OPM keyword to colour by
-        rstep : int
-            Report step
+        rstep : int | None
+            Report step, or None to show an .INIT keyword for a case with no restart files.
+            Then there is no date to title with, so set_title needs an explicit text
         clim : tuple[float, float] | None, optional
             Colour limits, by default None, which takes the range of this report step's data.
             Pass global_clim(...) to keep the colours comparable across report steps.
@@ -854,6 +856,8 @@ class GridPlotter:
 
         if diff_rstep is None:
             data = self.case.read(keyword, rstep)
+        elif rstep is None:
+            raise ValueError("No report step to take the difference from diff_rstep at!")
         else:
             data = self.case.diff(keyword, rstep, ref_rstep=diff_rstep, kind=diff_kind)
 
@@ -864,10 +868,14 @@ class GridPlotter:
             layer_grid = slice_range_layer_grid(self.grid.egrid, slice_dim, start, end)
             data = apply_slice_calc(data, layer_grid, kind=calc_kind)
 
-        scalar_range = (
-            clim
-            if clim is not None
-            else self.global_clim(
+        if clim is not None:
+            scalar_range = clim
+        elif rstep is None:
+            # With no report step there is only the one (static) set of values, so its own
+            # range is the whole range global_clim would otherwise compute over report steps
+            scalar_range = (float(np.nanmin(data)), float(np.nanmax(data)))
+        else:
+            scalar_range = self.global_clim(
                 keyword,
                 [rstep],
                 diff_rstep=diff_rstep,
@@ -877,7 +885,6 @@ class GridPlotter:
                 calc_kind=calc_kind,
                 calc_count=calc_count,
             )
-        )
 
         for entry in targets:
             entry.mesh.cell_data[keyword] = data[entry.mesh.cell_data[ACTIVE_INDEX]]
