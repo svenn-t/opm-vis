@@ -13,6 +13,7 @@ from opm_vis.cli.common import (
     FOLDER_OPTION,
     SAVE_OPTION,
     check_curve_option_count,
+    check_figsize,
     default_summary_output_name,
     handle_errors,
     resolve_case_groups,
@@ -340,10 +341,7 @@ def main(
         )
     if ylim is not None and ylim[0] >= ylim[1]:
         raise click.UsageError(f"--ylim MIN MAX must be increasing; got {ylim[0]} {ylim[1]}.")
-    if figsize is not None and (figsize[0] <= 0 or figsize[1] <= 0):
-        raise click.UsageError(
-            f"--figsize WIDTH HEIGHT must both be positive; got {figsize[0]} {figsize[1]}."
-        )
+    check_figsize(figsize)
     xlim_values = _parse_xlim(xlim, x_axis)
 
     # Keywords are resolved against the plot's own cases rather than a reader of their own, so a

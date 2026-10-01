@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import math
 import warnings
 from collections.abc import Sequence
 from functools import partial
@@ -31,6 +32,43 @@ from opm_vis.utils.units import Label
 # own unit convention (see set_labels below), so unlike opm_vis.pvplot this needs no check of
 # what unit the case is actually in.
 _KM_AXIS_SPAN_M = 1000.0
+
+# Default 2D figure size (see default_slice_figsize): the axes follow the slice's own
+# width:height ratio at a roughly constant area, clamped so a cross-section - often 100:1 wide
+# - still gets a usable height and a narrow map view is not squeezed into a sliver. The
+# margins leave room for the title, axis labels and colorbar around the axes.
+_SLICE_AXES_AREA_IN2 = 24.0
+_MIN_SLICE_ASPECT = 0.5
+_MAX_SLICE_ASPECT = 2.5
+_SLICE_MARGIN_WIDTH_IN = 1.8
+_SLICE_MARGIN_HEIGHT_IN = 1.2
+
+
+def default_slice_figsize(width: float, height: float) -> tuple[float, float]:
+    """
+    Figure size for a 2D slice, when none was asked for
+
+    Parameters
+    ----------
+    width : float
+        Slice's extent along the horizontal plot axis
+    height : float
+        Slice's extent along the vertical plot axis
+
+    Returns
+    -------
+    tuple[float, float]
+        Width and height in inches: an axes of _SLICE_AXES_AREA_IN2 square inches whose
+        width:height ratio is the slice's own, clamped to [_MIN_SLICE_ASPECT,
+        _MAX_SLICE_ASPECT], plus margins for the labels and colorbar
+    """
+    aspect = width / height if width > 0 and height > 0 else 1.0
+    aspect = min(max(aspect, _MIN_SLICE_ASPECT), _MAX_SLICE_ASPECT)
+
+    return (
+        round(math.sqrt(_SLICE_AXES_AREA_IN2 * aspect) + _SLICE_MARGIN_WIDTH_IN, 2),
+        round(math.sqrt(_SLICE_AXES_AREA_IN2 / aspect) + _SLICE_MARGIN_HEIGHT_IN, 2),
+    )
 
 
 def _km_axis_label(name: str, span: float) -> str:
@@ -805,6 +843,7 @@ class SlicePoly3DCollection(_SlicePolyCollection):
         slice_info: list[tuple[str, int]],
         calc_count: int | None = None,
         surface: bool = False,
+        figsize: tuple[float, float] | None = None,
     ) -> None:
         """
         Initialize class by setting up figure/axes.
@@ -823,6 +862,8 @@ class SlicePoly3DCollection(_SlicePolyCollection):
         surface : bool, optional
             --calculator surface, by default False. See SlicePoly3D/_GridSlice for what this
             changes about a slice's own geometry/active cells.
+        figsize : tuple[float, float] | None, optional
+            Figure size in inches, by default None, which keeps Matplotlib's own default
         """
         # Generate collection of slices
         slice_coll = [
@@ -830,7 +871,7 @@ class SlicePoly3DCollection(_SlicePolyCollection):
         ]
 
         # Setup matplotlib figure
-        fig = plt.figure()
+        fig = plt.figure(figsize=figsize)
         ax_ = fig.add_subplot(projection="3d")
         ax_.view_init(elev=30, azim=60)
 
@@ -900,6 +941,7 @@ class SlicePoly2DCollection(_SlicePolyCollection):
         slice_ind: int,
         calc_count: int | None = None,
         surface: bool = False,
+        figsize: tuple[float, float] | None = None,
     ) -> None:
         """
         Initialize class by setting up figure/axes.
@@ -919,12 +961,18 @@ class SlicePoly2DCollection(_SlicePolyCollection):
         surface : bool, optional
             --calculator surface, by default False. See SlicePoly2D/_GridSlice for what this
             changes about the slice's own geometry/active cells.
+        figsize : tuple[float, float] | None, optional
+            Figure size in inches, by default None, which sizes the figure to the slice's own
+            proportions (see default_slice_figsize)
         """
         # Generate 2D slice and put in a list to conform with parent class methods
         slice_coll = [SlicePoly2D(paths, slice_dim, slice_ind, calc_count, surface)]
 
         # Setup matplotlib figure
-        fig = plt.figure()
+        if figsize is None:
+            extent = slice_coll[0].cell_corners_max() - slice_coll[0].cell_corners_min()
+            figsize = default_slice_figsize(extent[0], extent[1])
+        fig = plt.figure(figsize=figsize)
         ax_ = fig.add_subplot()
 
         # Init parent class

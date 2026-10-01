@@ -18,6 +18,7 @@ from opm_vis.plot.collections import (  # noqa: E402
     SlicePoly3DCollection,
     _km_axis_label,
     _km_tick_formatter,
+    default_slice_figsize,
 )
 
 # The case1 and tpsa_lagged fixtures come from conftest.py.
@@ -85,6 +86,42 @@ def test_2d_slice_stays_in_metres_under_a_narrow_span(tpsa_lagged):
     assert coll.ax_.get_ylabel() == "N(y) [m]"
     assert not isinstance(coll.ax_.xaxis.get_major_formatter(), FuncFormatter)
     assert not isinstance(coll.ax_.yaxis.get_major_formatter(), FuncFormatter)
+
+
+def test_default_slice_figsize_follows_a_square_slice():
+    width, height = default_slice_figsize(100.0, 100.0)
+
+    # Square axes; the extra width is the margin for the colorbar and y label
+    assert width - 1.8 == pytest.approx(height - 1.2, abs=0.01)
+
+
+def test_default_slice_figsize_clamps_a_thin_cross_section():
+    # SPE1CASE1's cross-sections are 10000 ft wide but only 100 ft deep
+    assert default_slice_figsize(10000.0, 100.0) == default_slice_figsize(2.5, 1.0)
+    assert default_slice_figsize(1.0, 10000.0) == default_slice_figsize(1.0, 2.0)
+
+
+def test_default_slice_figsize_survives_a_degenerate_slice():
+    assert default_slice_figsize(0.0, 100.0) == default_slice_figsize(1.0, 1.0)
+
+
+def test_2d_cross_section_gets_a_wide_figure(case1):
+    coll = SlicePoly2DCollection([case1], "i", 5)
+
+    width, height = coll.fig.get_size_inches()
+    assert width > 2 * height
+
+
+def test_2d_figsize_overrides_the_default(case1):
+    coll = SlicePoly2DCollection([case1], "k", 0, figsize=(5.0, 3.0))
+
+    assert tuple(coll.fig.get_size_inches()) == (5.0, 3.0)
+
+
+def test_3d_figsize_overrides_the_default(case1):
+    coll = SlicePoly3DCollection([case1], [("k", 0)], figsize=(5.0, 3.0))
+
+    assert tuple(coll.fig.get_size_inches()) == (5.0, 3.0)
 
 
 # ---------------------------------------------------------------------------

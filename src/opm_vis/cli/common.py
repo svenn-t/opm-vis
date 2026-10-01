@@ -499,6 +499,26 @@ def resolve_subplot_layout(
     return layout
 
 
+def check_figsize(figsize: tuple[float, float] | None) -> None:
+    """
+    Reject a --figsize that Matplotlib cannot draw
+
+    Parameters
+    ----------
+    figsize : tuple[float, float] | None
+        Value of --figsize
+
+    Raises
+    ------
+    click.UsageError
+        If either dimension is zero or negative
+    """
+    if figsize is not None and (figsize[0] <= 0 or figsize[1] <= 0):
+        raise click.UsageError(
+            f"--figsize WIDTH HEIGHT must both be positive; got {figsize[0]} {figsize[1]}."
+        )
+
+
 def check_curve_option_count(
     option_name: str, values: Sequence[str], keywords: Sequence[str]
 ) -> None:

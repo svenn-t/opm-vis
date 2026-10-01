@@ -20,6 +20,7 @@ from opm_vis.cli.common import (
     SHOW_EDGES_OPTION,
     SLICE_OPTIONS,
     add_options,
+    check_figsize,
     default_output_name,
     grid_color_kwargs,
     handle_errors,
@@ -57,6 +58,15 @@ from opm_vis.utils.grid import slice_dimension_size
     help="Camera preset.",
 )
 @click.option("--no-colorbar", is_flag=True, default=False, help="Hide the colorbar.")
+@click.option(
+    "--figsize",
+    type=(float, float),
+    default=None,
+    metavar="WIDTH HEIGHT",
+    help="Figure size in inches. Defaults to a size following the slice's own proportions "
+    "with --view 2d (clamped, so a thin cross-section still gets a usable height), and to "
+    "Matplotlib's own figure size with --view 3d.",
+)
 @click.option(
     "--fault",
     "fault_path",
@@ -99,6 +109,7 @@ def main(
     clim: tuple[float, float] | None,
     view: str,
     no_colorbar: bool,
+    figsize: tuple[float, float] | None,
     fault_path: str | None,
     fault_names: tuple[str, ...],
     show_edges: bool,
@@ -149,15 +160,26 @@ def main(
     if clim is not None:
         poly_kwargs["clim"] = clim
 
+    check_figsize(figsize)
+
     resolved_paths = resolve_paths(folders)
     surface = calc_kind == "surface"
     if view == "3d":
         coll = SlicePoly3DCollection(
-            resolved_paths, [(slice_dim, slice_index)], calc_count=calc_count, surface=surface
+            resolved_paths,
+            [(slice_dim, slice_index)],
+            calc_count=calc_count,
+            surface=surface,
+            figsize=figsize,
         )
     else:
         coll = SlicePoly2DCollection(
-            resolved_paths, slice_dim, slice_index, calc_count=calc_count, surface=surface
+            resolved_paths,
+            slice_dim,
+            slice_index,
+            calc_count=calc_count,
+            surface=surface,
+            figsize=figsize,
         )
 
     if fault_path is not None:

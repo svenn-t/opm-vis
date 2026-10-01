@@ -8,6 +8,8 @@ from click.testing import CliRunner
 
 matplotlib.use("Agg")  # headless: never try to open a GUI window while saving
 
+from matplotlib.image import imread  # noqa: E402
+
 from opm_vis.cli.plot_cli import main  # noqa: E402
 
 # The case1_dir and data_dir fixtures come from conftest.py.
@@ -28,6 +30,29 @@ def test_single_frame_writes_output_file(case1_dir, runner, tmp_path):
     assert result.exit_code == 0, result.output
     assert output.exists()
     assert output.stat().st_size > 0
+
+
+def test_figsize_sets_the_saved_image_size(case1_dir, runner, tmp_path):
+    output = tmp_path / "sgas.png"
+
+    result = runner.invoke(
+        main,
+        ["-f", case1_dir, "-K", "SGAS", "-k", "1", "-r", "60", "--figsize", "5", "3",
+         "-s", str(output)],
+    )
+
+    assert result.exit_code == 0, result.output
+    # Matplotlib's default 100 dpi
+    assert imread(output).shape[:2] == (300, 500)
+
+
+def test_figsize_must_be_positive(case1_dir, runner):
+    result = runner.invoke(
+        main, ["-f", case1_dir, "-K", "SGAS", "-k", "1", "-r", "60", "--figsize", "0", "3"]
+    )
+
+    assert result.exit_code != 0
+    assert "must both be positive" in result.output
 
 
 def test_animate_writes_output_file(case1_dir, runner, tmp_path):
