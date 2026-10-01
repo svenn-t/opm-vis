@@ -732,7 +732,7 @@ class _SlicePolyCollection:
             )
 
         # Save file
-        self.fig.savefig(filename)
+        self.fig.savefig(filename, bbox_inches="tight")
         plt.close("all")
 
     def save_grid_plot(
@@ -754,7 +754,7 @@ class _SlicePolyCollection:
             filename = f"{self.paths[0]}GRID_{self._slice_info()}.{file_format}"
 
         # Save file
-        self.fig.savefig(filename)
+        self.fig.savefig(filename, bbox_inches="tight")
         plt.close("all")
 
     def save_gif(self, filename: str | Path | None = None, fps: int = 3) -> None:

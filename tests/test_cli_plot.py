@@ -37,13 +37,15 @@ def test_figsize_sets_the_saved_image_size(case1_dir, runner, tmp_path):
 
     result = runner.invoke(
         main,
-        ["-f", case1_dir, "-K", "SGAS", "-k", "1", "-r", "60", "--figsize", "5", "3",
+        ["-f", case1_dir, "-K", "SGAS", "-k", "1", "-r", "60", "--figsize", "10", "3",
          "-sf", str(output)],
     )
 
     assert result.exit_code == 0, result.output
-    # Matplotlib's default 100 dpi
-    assert imread(output / "SGAS_k1_r60.png").shape[:2] == (300, 500)
+    # Saved with bbox_inches="tight", so the image is cropped to its content rather than
+    # exactly 10x3 inches at 100 dpi - but it keeps the figure's wide proportions
+    height, width = imread(output / "SGAS_k1_r60.png").shape[:2]
+    assert width > 2 * height
 
 
 def test_figsize_must_be_positive(case1_dir, runner):

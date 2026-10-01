@@ -964,7 +964,7 @@ class SummaryPlot:
         if filename is None:
             filename = f"{self.paths[0][0]}{self._keyword_tag()}.{file_format}"
 
-        self.fig.savefig(filename)
+        self.fig.savefig(filename, bbox_inches="tight")
         plt.close("all")
 
     def _keyword_tag(self) -> str:

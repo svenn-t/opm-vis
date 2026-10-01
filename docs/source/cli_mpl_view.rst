@@ -40,11 +40,11 @@ Hides the colorbar.
 ``--figsize``
 ---------------
 
-Figure size in inches, also the size of a saved image (at Matplotlib's 100 dpi). With
-``--view 2d`` the default follows the slice's own proportions, so a square map view gets
-square axes. The ratio is clamped between 1:2 and 2.5:1, so a cross-section, which is often
-100 times wider than it is deep, still gets a usable height. With ``--view 3d`` the default
-is Matplotlib's own figure size.
+Figure size in inches. A saved image is about this size at Matplotlib's 100 dpi, cropped to
+the plot itself so there is no empty margin around it. With ``--view 2d`` the default follows
+the slice's own proportions, so a square map view gets square axes. The ratio is clamped
+between 1:2 and 2.5:1, so a cross-section, which is often 100 times wider than it is deep,
+still gets a usable height. With ``--view 3d`` the default is Matplotlib's own figure size.
 
 .. code-block:: bash
 
