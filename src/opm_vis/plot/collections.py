@@ -876,6 +876,10 @@ class SlicePoly3DCollection(_SlicePolyCollection):
         fig = plt.figure(figsize=figsize)
         ax_ = fig.add_subplot(projection="3d")
         ax_.view_init(elev=30, azim=60)
+        # Matplotlib's own 3D depth sorting works per artist rather than per pixel, and puts a
+        # slice in front of the wells and faults lying on or in it. Drawing in plain zorder
+        # instead keeps those line overlays (zorder 2) on top of the slices (zorder 1).
+        cast(Axes3D, ax_).computed_zorder = False
 
         # Init parent class
         super().__init__(paths, fig, ax_, slice_coll)
