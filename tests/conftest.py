@@ -1,6 +1,7 @@
 """ Shared fixtures locating the datasets in tests/data """
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 # Test datasets live next to this file, one folder per case (SPE1CASE2 shares its folder with
@@ -125,6 +126,24 @@ def tpsa_lagged_dir() -> str:
         Path to tests/data/TPSA_LAGGED
     """
     return str(_DATA_DIR / "TPSA_LAGGED")
+
+
+@pytest.fixture
+def polygon_files(tmp_path) -> dict[str, str]:
+    """
+    Polygon files inside SPE1CASE1's 10000 ft square grid, 8325-8425 ft deep
+
+    Returns
+    -------
+    dict[str, str]
+        "outline": an x,y-only square (.npy); "line": a 2-point x,y,z line at 8350 ft (.npz,
+        key "deep")
+    """
+    outline = tmp_path / "outline.npy"
+    line = tmp_path / "line.npz"
+    np.save(outline, np.array([[1000, 1000], [9000, 1000], [9000, 9000], [1000, 9000]]))
+    np.savez(line, deep=np.array([[500, 500, 8350], [9500, 9500, 8350]]))
+    return {"outline": str(outline), "line": str(line)}
 
 
 @pytest.fixture(scope="session")

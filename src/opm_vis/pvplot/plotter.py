@@ -16,11 +16,13 @@ from opm_vis.pvplot.data import CaseData
 from opm_vis.pvplot.faults import fault_surfaces
 from opm_vis.pvplot.labels import axis_titles, glyph_bar_title, scalar_bar_title, unit
 from opm_vis.pvplot.mesh import ACTIVE_INDEX, GridMesh
+from opm_vis.pvplot.polygons import polygon_lines
 from opm_vis.pvplot.wells import well_paths
 from opm_vis.utils.calc import apply_slice_calc, resolve_calc_range
 from opm_vis.utils.diff import compute_diff
 from opm_vis.utils.fault import FaultReader
 from opm_vis.utils.grid import slice_dimension_size, slice_range_layer_grid
+from opm_vis.utils.polygons import read_polygons, warn_outside
 from opm_vis.utils.units import Label
 
 # Camera setup per slice dimension for view_2d. GridMesh already negates z to point up (see
@@ -403,6 +405,93 @@ class GridPlotter:
                 surfaces.label_names,
                 name=_FAULT_LABELS,
                 font_size=10,
+                shape=None,
+                always_visible=True,
+                show_points=False,
+            )
+
+        return registered
+
+    def add_polygons(
+        self,
+        paths: str | Path | Sequence[str | Path],
+        *,
+        outlines: bool = True,
+        labels: bool | Sequence[str | None] = True,
+        name: str = "polygons",
+        **kwargs,
+    ) -> str | None:
+        """
+        Add polygons (outlines or 3D polylines) read from files
+
+        Parameters
+        ----------
+        paths : str | Path | Sequence[str | Path]
+            Polygon file(s): NumPy .npy/.npz, text (.txt, .csv, .dat, .xyz) or GeoJSON; see
+            opm_vis.utils.polygons.read_polygons. Points are in the same coordinates the grid
+            is drawn in, with z as depth, positive down.
+        outlines : bool, optional
+            Draw x,y-only outlines, flat at the top of the grid, by default True. Turn off where
+            they would only be seen edge-on, e.g. a 2D view of an i- or j-slice.
+        labels : bool | Sequence[str | None], optional
+            Annotate each polygon with its name, by default True. False draws no labels. A
+            sequence gives one label per file instead, as read_polygons' labels: "" leaves that
+            file unlabelled, None keeps its polygons' own names.
+        name : str, optional
+            Name to register the polygons under, by default "polygons"
+        kwargs : optional
+            Optional arguments passed to pyvista.Plotter.add_mesh; "color" defaults to
+            "red" and "line_width" to 3.0
+
+        Returns
+        -------
+        str | None
+            Name the polygons were registered under, or None if nothing was drawn - a warning
+            is issued in that case, as for add_faults
+
+        Raises
+        ------
+        FileNotFoundError, ValueError
+            If a file is missing, or not a readable polygon file; see read_polygons
+
+        Notes
+        -----
+        x,y,z polygons are drawn where their points are. x,y-only outlines are drawn flat at
+        the top of the whole grid, not draped over its shape. A polygon lying entirely outside
+        the grid's own extent - e.g. a file in km for a grid in m - is warned about.
+        """
+        polygons = read_polygons(
+            paths, labels=None if isinstance(labels, bool) else list(labels)
+        )
+        bounds = self.grid.mesh.bounds
+        lines = polygon_lines(polygons, bounds[5], outlines=outlines)
+        warn_outside(
+            lines.drawn,
+            lines.tracks,
+            np.array([bounds[0], bounds[2], bounds[4]]),
+            np.array([bounds[1], bounds[3], bounds[5]]),
+        )
+
+        if lines.skipped_outlines:
+            warnings.warn(
+                f"{lines.skipped_outlines} x,y-only polygon(s) not drawn: an outline has no "
+                "depth to place it on this view."
+            )
+        if lines.mesh is None:
+            warnings.warn("No polygons to draw.")
+            return None
+
+        kwargs.setdefault("color", "red")
+        kwargs.setdefault("line_width", 3.0)
+        registered = self._add(lines.mesh, name, carries_scalars=False, **kwargs)
+
+        if labels is not False and lines.label_names:
+            self.plotter.add_point_labels(
+                self._label_anchor_points(lines.label_points),
+                lines.label_names,
+                name=f"{registered}-labels",
+                font_size=10,
+                text_color=kwargs["color"],
                 shape=None,
                 always_visible=True,
                 show_points=False,

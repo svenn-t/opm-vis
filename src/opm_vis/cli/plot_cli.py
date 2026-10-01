@@ -14,6 +14,7 @@ from opm_vis.cli.common import (
     GRID_ONLY_OPTIONS,
     KEYWORD_OPTION,
     FOLDER_OPTION,
+    POLYGON_OPTIONS,
     RSTEP_OR_ANIMATE_OPTIONS,
     SAVE_OPTION,
     SHOW_EDGES_OPTION,
@@ -24,6 +25,7 @@ from opm_vis.cli.common import (
     grid_color_kwargs,
     handle_errors,
     parse_rstep,
+    polygon_labels_arg,
     resolve_animate_rsteps,
     resolve_calculator,
     resolve_diff_rstep,
@@ -92,6 +94,7 @@ _ANIMATION_FOLDER = "mpl-gifs"
     help="Only draw this fault (repeatable). Only used with --fault. Without it, every fault "
     "crossing the slice is drawn.",
 )
+@add_options(POLYGON_OPTIONS)
 @SHOW_EDGES_OPTION
 @handle_errors
 # pylint: disable=too-many-arguments,too-many-locals
@@ -120,6 +123,10 @@ def main(
     figsize: tuple[float, float] | None,
     fault_path: str | None,
     fault_names: tuple[str, ...],
+    polygon_paths: tuple[str, ...],
+    polygon_color: str,
+    polygon_labels: tuple[str, ...],
+    show_polygon_labels: bool,
     show_edges: bool,
 ) -> None:
     """
@@ -153,6 +160,9 @@ def main(
         )
     if fault_names and fault_path is None:
         raise click.UsageError("--fault-name needs --fault.")
+    polygon_labels_value = polygon_labels_arg(
+        polygon_paths, polygon_labels, show_polygon_labels
+    )
     slice_dim, slice_index = slices[0]
     rstep_value = parse_rstep(rstep, animate)
     # --diff has no effect in --grid-only (there is no --keyword to difference); see the
@@ -192,6 +202,10 @@ def main(
 
     if fault_path is not None:
         coll.plot_faults(fault_path, names=list(fault_names) or None)
+    if polygon_paths:
+        coll.plot_polygons(
+            list(polygon_paths), labels=polygon_labels_value, color=polygon_color
+        )
 
     calc_end = None
     if calc_kind is not None:

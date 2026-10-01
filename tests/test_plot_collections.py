@@ -242,3 +242,63 @@ def test_3d_plot_faults_adds_a_line3d_collection(case1, fault_file):
 
     assert any(isinstance(c, Line3DCollection) for c in ax_3d.collections)
     assert sorted(t.get_text() for t in ax_3d.texts) == ["FAULT1", "FAULT2"]
+
+
+# ---------------------------------------------------------------------------
+# plot_polygons
+# ---------------------------------------------------------------------------
+
+
+def _line_collections(ax):
+    return [c for c in ax.collections if isinstance(c, LineCollection)]
+
+
+def test_plot_polygons_on_a_k_slice_draws_every_polygon_by_its_x_y(case1, polygon_files):
+    coll = SlicePoly2DCollection([case1], "k", 0)
+    coll.plot_polygons([polygon_files["outline"], polygon_files["line"]])
+
+    (lines,) = _line_collections(coll.ax_)
+    assert len(lines.get_segments()) == 2
+    assert {t.get_text() for t in coll.ax_.texts} == {"outline", "deep"}
+
+
+def test_plot_polygons_on_an_i_slice_projects_x_y_z_and_skips_outlines(case1, polygon_files):
+    coll = SlicePoly2DCollection([case1], "i", 5)
+    with pytest.warns(UserWarning, match="1 x,y-only polygon"):
+        coll.plot_polygons([polygon_files["outline"], polygon_files["line"]])
+
+    (lines,) = _line_collections(coll.ax_)
+    (segment,) = lines.get_segments()
+    # An i-slice plots (y, depth)
+    assert np.allclose(segment, [[500, 8350], [9500, 8350]])
+
+
+def test_plot_polygons_in_3d_puts_outlines_at_the_top_of_the_slices(case1, polygon_files):
+    coll = SlicePoly3DCollection([case1], [("k", 1)])
+    coll.plot_polygons(polygon_files["outline"])
+
+    (lines,) = [c for c in coll.ax_.collections if isinstance(c, Line3DCollection)]
+    top = coll.slice_coll[0].cell_corners_min()[2]
+    assert np.allclose(lines._segments3d[0][:, 2], top)  # pylint: disable=protected-access
+
+
+def test_plot_polygons_labels_can_be_replaced_or_turned_off(case1, polygon_files):
+    paths = [polygon_files["outline"], polygon_files["line"]]
+
+    relabelled = SlicePoly2DCollection([case1], "k", 0)
+    relabelled.plot_polygons(paths, labels=["Licence", ""])
+    unlabelled = SlicePoly2DCollection([case1], "k", 0)
+    unlabelled.plot_polygons(paths, labels=False)
+
+    assert [t.get_text() for t in relabelled.ax_.texts] == ["Licence"]
+    assert not unlabelled.ax_.texts
+
+
+def test_plot_polygons_warns_about_a_polygon_outside_the_slice(case1, tmp_path):
+    path = tmp_path / "km.npy"
+    # Far outside SPE1CASE1, which spans 0-10000 ft
+    np.save(path, np.array([[1.0, 1.0], [9.0, 1.0], [9.0, 9.0]]) + 100000)
+    coll = SlicePoly2DCollection([case1], "k", 0)
+
+    with pytest.warns(UserWarning, match=r"outside the plotted grid.*km \(km\.npy\)"):
+        coll.plot_polygons(str(path))

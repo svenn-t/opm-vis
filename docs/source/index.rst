@@ -21,6 +21,8 @@ Features
 - **Grid slicing.** Cut i-, j- or k-slices through the 3D grid, alone or several at once, coloured
   by any keyword (``SGAS``, ``PRESSURE``, ...).
 - **Wells.** Overlay wells with a completion on the chosen slice(s), or every well in the grid.
+- **Polygons.** Overlay outlines or 3D polylines (licence boundaries, plume outlines, seismic
+  lines) from NumPy, text or GeoJSON files.
 - **Vector glyphs.** Arrow overlays from three keyword components (e.g. a displacement vector),
   scaled by magnitude and comparable across report steps.
 - **Subsets.** Threshold or clip the grid to a region of interest (PyVista backend only, since a

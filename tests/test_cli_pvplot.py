@@ -3,6 +3,7 @@ import shutil
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import numpy as np
 import pytest
 from click.testing import CliRunner
 
@@ -1551,3 +1552,110 @@ def test_save_defaults_to_pv_folders_inside_the_case_folder(data_dir, offscreen,
     assert f"Created folder {tmp_path / 'pv-gifs'}" in animation.output
     assert (tmp_path / "pv-figs" / "SGAS_k1_r60.png").exists()
     assert (tmp_path / "pv-gifs" / "SGAS_k1_r0-2.gif").exists()
+
+
+@pytest.mark.parametrize("view", [["-k", "1"], ["-k", "1", "--view", "3d"]])
+def test_polygons_are_drawn(case1_dir, polygon_files, offscreen, runner, tmp_path, view):
+    del offscreen
+    output = tmp_path / "out"
+
+    result = runner.invoke(
+        main,
+        [
+            "-f", case1_dir, "-K", "PERMX", *view,
+            "--polygon", polygon_files["outline"], "--polygon", polygon_files["line"],
+            "--polygon-color", "white", "-sf", str(output),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert any(output.iterdir())
+
+
+def test_polygon_outlines_on_an_i_slice_are_skipped_with_a_warning(
+    case1_dir, polygon_files, offscreen, runner, tmp_path
+):
+    del offscreen
+    with pytest.warns(UserWarning, match="x,y-only polygon"):
+        result = runner.invoke(
+            main,
+            [
+                "-f", case1_dir, "-K", "PERMX", "-i", "5",
+                "--polygon", polygon_files["outline"], "-sf", str(tmp_path / "out"),
+            ],
+        )
+
+    assert result.exit_code == 0, result.output
+
+
+def test_missing_polygon_file_is_a_clean_error(case1_dir, runner, tmp_path):
+    result = runner.invoke(
+        main, ["-f", case1_dir, "-K", "PERMX", "-k", "1", "--polygon", str(tmp_path / "x.npy")]
+    )
+
+    assert result.exit_code != 0
+    assert "does not exist" in result.output
+
+
+def test_unreadable_polygon_file_is_a_clean_error(case1_dir, offscreen, runner, tmp_path):
+    del offscreen
+    bad = tmp_path / "bad.npy"
+    bad.write_bytes(b"not numpy")
+    result = runner.invoke(
+        main,
+        ["-f", case1_dir, "-K", "PERMX", "-k", "1", "--polygon", str(bad), "-sf", str(tmp_path)],
+    )
+
+    assert result.exit_code != 0
+    assert "Traceback" not in result.output
+
+
+@pytest.mark.parametrize(
+    "label_args", [["--polygon-label", "Licence", "--polygon-label", ""], ["--no-polygon-labels"]]
+)
+def test_polygon_labels_can_be_replaced_or_turned_off(
+    case1_dir, polygon_files, offscreen, runner, tmp_path, label_args
+):
+    del offscreen
+    result = runner.invoke(
+        main,
+        [
+            "-f", case1_dir, "-K", "PERMX", "-k", "1",
+            "--polygon", polygon_files["outline"], "--polygon", polygon_files["line"],
+            *label_args, "-sf", str(tmp_path / "out"),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+
+
+@pytest.mark.parametrize(
+    ("args", "message"),
+    [
+        (["--polygon-label", "a"], "--polygon-label needs --polygon"),
+        (["--polygon", "OUTLINE", "--polygon-label", "a", "--polygon-label", "b"],
+         "one label per file"),
+    ],
+)
+def test_polygon_label_misuse_is_rejected(case1_dir, polygon_files, runner, args, message):
+    args = [polygon_files["outline"] if arg == "OUTLINE" else arg for arg in args]
+    result = runner.invoke(main, ["-f", case1_dir, "-K", "PERMX", "-k", "1", *args])
+
+    assert result.exit_code != 0
+    assert message in result.output
+
+
+def test_polygon_outside_the_grid_is_warned_about(case1_dir, offscreen, runner, tmp_path):
+    del offscreen
+    path = tmp_path / "km.npy"
+    # Far outside SPE1CASE1, which spans 0-10000 ft
+    np.save(path, np.array([[1.0, 1.0], [9.0, 1.0], [9.0, 9.0]]) + 100000)
+
+    with pytest.warns(UserWarning, match="entirely outside the plotted grid"):
+        result = runner.invoke(
+            main,
+            ["-f", case1_dir, "-K", "PERMX", "-k", "1", "--polygon", str(path),
+             "-sf", str(tmp_path / "out")],
+        )
+
+    assert result.exit_code == 0, result.output

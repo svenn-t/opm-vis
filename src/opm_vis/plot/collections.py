@@ -24,6 +24,7 @@ from opm_vis.plot.slice_poly import SlicePoly2D, SlicePoly3D
 from opm_vis.utils.calc import calc_label
 from opm_vis.utils.diff import diff_label
 from opm_vis.utils.fault import FaultReader
+from opm_vis.utils.polygons import read_polygons, warn_outside
 from opm_vis.utils.restart import Report
 from opm_vis.utils.units import Label
 
@@ -344,6 +345,117 @@ class _SlicePolyCollection:
                 if labels:
                     for (x, y, z), name in zip(edges.label_points, edges.label_names):
                         ax_3d.text(x, y, z, name, color=kwargs["color"])
+
+    def plot_polygons(
+        self,
+        paths: str | Path | Sequence[str | Path],
+        *,
+        labels: bool | Sequence[str | None] = True,
+        **kwargs,
+    ) -> None:
+        """
+        Plot polygons (outlines or 3D polylines) read from files
+
+        Parameters
+        ----------
+        paths : str | Path | Sequence[str | Path]
+            Polygon file(s): NumPy .npy/.npz, text (.txt, .csv, .dat, .xyz) or GeoJSON; see
+            opm_vis.utils.polygons.read_polygons. Points are in the same coordinates the grid
+            is drawn in, with z as depth, positive down.
+        labels : bool | Sequence[str | None], optional
+            Annotate each polygon with its name, by default True. False draws no labels. A
+            sequence gives one label per file instead, as read_polygons' labels: "" leaves that
+            file unlabelled, None keeps its polygons' own names.
+        kwargs : optional
+            Optional arguments passed to LineCollection/Line3DCollection; "color" defaults to
+            "red" and "linewidth" to 2.0 unless overridden.
+
+        Raises
+        ------
+        FileNotFoundError, ValueError
+            If a file is missing, or not a readable polygon file; see read_polygons
+
+        Notes
+        -----
+        On a 2D k-slice (map view) every polygon is drawn by its x,y. On a 2D i- or j-slice,
+        x,y,z polygons are projected onto the slice's plane, and x,y-only outlines - which have
+        no depth to place them at - are left out with a warning. In 3D, x,y,z polygons are drawn
+        where they are, and x,y-only outlines flat at the top of the plotted slices. A polygon
+        lying entirely outside the plotted slice(s) - e.g. a file in km for a grid in m - is
+        warned about.
+        """
+        kwargs.setdefault("color", "red")
+        kwargs.setdefault("linewidth", 2.0)
+
+        polygons = read_polygons(
+            paths, labels=None if isinstance(labels, bool) else list(labels)
+        )
+        first = self.slice_coll[0]
+
+        if isinstance(first, SlicePoly2D):
+            axes = [0, 1] if first.slice_dim == "k" else first.slice_axis
+            drawn = [
+                polygon for polygon in polygons if first.slice_dim == "k" or polygon.has_depth
+            ]
+            if len(drawn) < len(polygons):
+                warnings.warn(
+                    f"{len(polygons) - len(drawn)} x,y-only polygon(s) not drawn: an outline "
+                    f"has no depth to place it on this {first.slice_dim}-slice."
+                )
+            points = [polygon.points[:, axes] for polygon in drawn]
+            anchors = [polygon.label_point()[axes] for polygon in drawn]
+        else:
+            # Depth is positive down here, so the top of the plotted slices is their minimum
+            top = min(slc.cell_corners_min()[2] for slc in self.slice_coll)
+            drawn = polygons
+            points = [
+                polygon.points
+                if polygon.has_depth
+                else np.column_stack([polygon.points, np.full(len(polygon.points), top)])
+                for polygon in drawn
+            ]
+            anchors = [
+                polygon.label_point()
+                if polygon.has_depth
+                else np.append(polygon.label_point(), top)
+                for polygon in drawn
+            ]
+
+        if not drawn:
+            warnings.warn("No polygons to draw.")
+            return
+
+        warn_outside(
+            drawn,
+            points,
+            np.min([slc.cell_corners_min() for slc in self.slice_coll], axis=0),
+            np.max([slc.cell_corners_max() for slc in self.slice_coll], axis=0),
+        )
+
+        if isinstance(first, SlicePoly2D):
+            self.ax_.add_collection(LineCollection(points, **kwargs))
+        else:
+            # self.ax_ is declared as the plain 2D Axes for _SlicePolyCollection's own 2D use,
+            # but is actually an Axes3D here - see SlicePoly3DCollection.
+            cast(Axes3D, self.ax_).add_collection3d(Line3DCollection(points, **kwargs))
+
+        if labels is False:
+            return
+
+        # A name shared by several polygons (e.g. a GeoJSON polygon and its holes) once
+        labelled: set[str] = set()
+        for polygon, anchor in zip(drawn, anchors):
+            if not polygon.name or polygon.name in labelled:
+                continue
+            labelled.add(polygon.name)
+            if isinstance(first, SlicePoly2D):
+                self.ax_.annotate(
+                    polygon.name, (anchor[0], anchor[1]), color=kwargs["color"], ha="center"
+                )
+            else:
+                cast(Axes3D, self.ax_).text(
+                    anchor[0], anchor[1], anchor[2], polygon.name, color=kwargs["color"]
+                )
 
     # pylint: disable=too-many-arguments
     def plot(
@@ -877,8 +989,8 @@ class SlicePoly3DCollection(_SlicePolyCollection):
         ax_ = fig.add_subplot(projection="3d")
         ax_.view_init(elev=30, azim=60)
         # Matplotlib's own 3D depth sorting works per artist rather than per pixel, and puts a
-        # slice in front of the wells and faults lying on or in it. Drawing in plain zorder
-        # instead keeps those line overlays (zorder 2) on top of the slices (zorder 1).
+        # slice in front of the wells, faults and polygons lying on or in it. Drawing in plain
+        # zorder instead keeps those line overlays (zorder 2) on top of the slices (zorder 1).
         cast(Axes3D, ax_).computed_zorder = False
 
         # Init parent class

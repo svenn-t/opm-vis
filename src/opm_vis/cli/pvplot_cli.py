@@ -14,6 +14,7 @@ from opm_vis.cli.common import (
     GRID_ONLY_OPTIONS,
     KEYWORD_OPTION,
     FOLDER_OPTION,
+    POLYGON_OPTIONS,
     RSTEP_OR_ANIMATE_OPTIONS,
     SAVE_OPTION,
     SHOW_EDGES_OPTION,
@@ -23,6 +24,7 @@ from opm_vis.cli.common import (
     grid_color_kwargs,
     handle_errors,
     parse_rstep,
+    polygon_labels_arg,
     resolve_animate_rsteps,
     resolve_calculator,
     resolve_diff_rstep,
@@ -278,6 +280,7 @@ def _wells_slices(
     "on the chosen -i/-j/-k slice(s) is drawn, or every fault in the file if no slice was "
     "given.",
 )
+@add_options(POLYGON_OPTIONS)
 @SHOW_EDGES_OPTION
 @click.option(
     "--quads",
@@ -416,6 +419,10 @@ def main(
     wireframe: bool,
     fault_path: str | None,
     fault_names: tuple[str, ...],
+    polygon_paths: tuple[str, ...],
+    polygon_color: str,
+    polygon_labels: tuple[str, ...],
+    show_polygon_labels: bool,
     show_edges: bool,
     quads: bool,
     threshold: str | None,
@@ -485,6 +492,9 @@ def main(
         )
     if fault_names and fault_path is None:
         raise click.UsageError("--fault-name needs --fault.")
+    polygon_labels_value = polygon_labels_arg(
+        polygon_paths, polygon_labels, show_polygon_labels
+    )
     rstep_value = parse_rstep(rstep, animate)
     # --diff has no effect in --grid-only (there is no --keyword to difference), so it is
     # forced off here rather than left to silently do nothing while still showing up in the
@@ -573,6 +583,15 @@ def main(
         if fault_path is not None:
             plotter.add_faults(
                 fault_path, names=list(fault_names) or None, slices=slices or None
+            )
+        if polygon_paths:
+            # A flat x,y outline at the top of the grid is only seen edge-on in a 2D view of an
+            # i- or j-slice, so it is left out there
+            plotter.add_polygons(
+                list(polygon_paths),
+                outlines=not (view == "2d" and slices[0][0] != "k"),
+                labels=polygon_labels_value,
+                color=polygon_color,
             )
 
         if view == "2d":

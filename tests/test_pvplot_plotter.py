@@ -1511,3 +1511,66 @@ def test_context_manager_closes_the_render_window(case1, offscreen):
 
     # PyVista marks a closed plotter's render window as gone
     assert gplot.plotter._closed is True
+
+
+# ---------------------------------------------------------------------------
+# add_polygons
+# ---------------------------------------------------------------------------
+
+
+def test_add_polygons_draws_outlines_at_the_top_of_the_grid(plotter, polygon_files):
+    name = plotter.add_polygons(polygon_files["outline"])
+
+    assert name == "polygons"
+    mesh = plotter._actors["polygons"].mesh
+    assert mesh.n_lines == 1
+    assert mesh.n_points == 5  # closed square
+    assert np.allclose(mesh.points[:, 2], plotter.grid.mesh.bounds[5])
+
+
+def test_add_polygons_flips_depth_to_pvplot_z(plotter, polygon_files):
+    plotter.add_polygons(polygon_files["line"])
+
+    assert np.allclose(plotter._actors["polygons"].mesh.points[:, 2], -8350.0)
+
+
+def test_add_polygons_without_outlines_skips_them_with_a_warning(plotter, polygon_files):
+    with pytest.warns(UserWarning, match="1 x,y-only polygon"):
+        plotter.add_polygons(
+            [polygon_files["outline"], polygon_files["line"]], outlines=False
+        )
+
+    assert plotter._actors["polygons"].mesh.n_lines == 1
+
+
+def test_add_polygons_with_nothing_to_draw_warns_and_returns_none(plotter, polygon_files):
+    with pytest.warns(UserWarning, match="No polygons to draw"):
+        assert plotter.add_polygons(polygon_files["outline"], outlines=False) is None
+
+
+def test_add_polygons_warns_about_a_polygon_outside_the_grid(plotter, tmp_path):
+    path = tmp_path / "km.npy"
+    np.save(path, np.array([[1.0, 1.0], [9.0, 1.0], [9.0, 9.0]]) + 100000)
+
+    with pytest.warns(UserWarning, match="entirely outside the plotted grid"):
+        plotter.add_polygons(str(path))
+
+
+def test_add_polygons_warns_about_a_line_at_the_wrong_depth(plotter, tmp_path):
+    path = tmp_path / "shallow.npy"
+    np.save(path, np.array([[1000, 1000, 2.7], [9000, 9000, 2.7]]))
+
+    with pytest.warns(UserWarning, match="entirely outside the plotted grid"):
+        plotter.add_polygons(str(path))
+
+
+def test_add_polygons_labels(plotter, polygon_files):
+    paths = [polygon_files["outline"], polygon_files["line"]]
+
+    plotter.add_polygons(paths, labels=["Licence", ""], name="relabelled")
+    plotter.add_polygons(paths, labels=False, name="unlabelled")
+
+    # add_point_labels suffixes the name it is given
+    actors = list(plotter.plotter.actors)
+    assert any(n.startswith("relabelled-labels") for n in actors)
+    assert not any(n.startswith("unlabelled-labels") for n in actors)

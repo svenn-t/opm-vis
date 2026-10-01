@@ -132,6 +132,81 @@ def save_folder_option(figure_folder: str, animation_folder: str | None = None) 
     )
 
 
+# Polygons in the plot's own coordinates; see opm_vis.utils.polygons.read_polygons
+POLYGON_OPTIONS = [
+    click.option(
+        "--polygon",
+        "polygon_paths",
+        multiple=True,
+        type=click.Path(exists=True, dir_okay=False),
+        metavar="PATH",
+        help="File with polygons to draw (repeatable): NumPy .npy/.npz, text (.txt, .csv, "
+        ".dat, .xyz: x y [z] columns, a blank line between polygons) or GeoJSON. Points are "
+        "in the grid's own coordinates, with z as depth. x,y-only outlines are drawn on "
+        "k-slices, and at the top of the grid in 3D.",
+    ),
+    click.option(
+        "--polygon-color",
+        default="red",
+        show_default=True,
+        help="Colour of the --polygon lines and labels.",
+    ),
+    click.option(
+        "--polygon-label",
+        "polygon_labels",
+        multiple=True,
+        metavar="TEXT",
+        help="Label for the polygons of each --polygon file, given once per file in the same "
+        'order (repeatable). "" leaves that file unlabelled. Default: each polygon\'s own '
+        "name, i.e. its file name, .npz key or GeoJSON name.",
+    ),
+    click.option(
+        "--polygon-labels/--no-polygon-labels",
+        "show_polygon_labels",
+        default=True,
+        show_default=True,
+        help="Label each polygon.",
+    ),
+]
+
+
+def polygon_labels_arg(
+    polygon_paths: Sequence[str], polygon_labels: Sequence[str], show_polygon_labels: bool
+) -> bool | list[str]:
+    """
+    Turn the --polygon label options into add_polygons/plot_polygons' labels argument
+
+    Parameters
+    ----------
+    polygon_paths : Sequence[str]
+        Value of --polygon
+    polygon_labels : Sequence[str]
+        Value of --polygon-label
+    show_polygon_labels : bool
+        Value of --polygon-labels/--no-polygon-labels
+
+    Returns
+    -------
+    bool | list[str]
+        False to draw no labels, the --polygon-label values to relabel each file, or True to
+        keep every polygon's own name
+
+    Raises
+    ------
+    click.UsageError
+        If --polygon-label is given without --polygon, or not once per --polygon
+    """
+    if polygon_labels and not polygon_paths:
+        raise click.UsageError("--polygon-label needs --polygon.")
+    if polygon_labels and len(polygon_labels) != len(polygon_paths):
+        raise click.UsageError(
+            f"--polygon-label was given {len(polygon_labels)} time(s) for {len(polygon_paths)} "
+            '--polygon file(s); give one label per file, "" for none.'
+        )
+    if not show_polygon_labels:
+        return False
+    return list(polygon_labels) if polygon_labels else True
+
 CMAP_OPTION = click.option(
     "--cmap", default="viridis", show_default=True, help="Matplotlib colour map name."
 )

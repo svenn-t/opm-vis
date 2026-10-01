@@ -9,7 +9,7 @@ at a time, no wells, no glyphs, no thresholding or clipping, and no whole-grid v
 Each option group below has its own page with a description and a runnable example of every
 option in it: :doc:`cli_mpl_input`, :doc:`cli_mpl_grid_only`, :doc:`cli_mpl_slicing`,
 :doc:`cli_mpl_rstep_animation`, :doc:`cli_mpl_diff`, :doc:`cli_mpl_calculator`,
-:doc:`cli_mpl_view`, :doc:`cli_mpl_fault`, :doc:`cli_mpl_output`. This backend supports a smaller
+:doc:`cli_mpl_view`, :doc:`cli_mpl_fault`, :doc:`cli_mpl_polygons`, :doc:`cli_mpl_output`. This backend supports a smaller
 option set than :doc:`cli_pv` - see its option pages for wells, glyphs, thresholding and
 clipping, none of which are available here.
 
@@ -32,4 +32,5 @@ Option reference
    cli_mpl_calculator
    cli_mpl_view
    cli_mpl_fault
+   cli_mpl_polygons
    cli_mpl_output

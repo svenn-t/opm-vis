@@ -43,6 +43,27 @@ one or more ``(dim, index)`` slices, the same slices passed to ``add_slice``:
    plotter.view_2d("k")
    plotter.show()
 
+Polygons
+-------------------------
+
+:meth:`~opm_vis.pvplot.GridPlotter.add_polygons` draws polygons read from NumPy, text or
+GeoJSON files (see :func:`~opm_vis.utils.polygons.read_polygons`), each labelled with its name.
+Points with a depth are drawn where they are; ``x y`` outlines flat at the top of the grid.
+``labels=False`` drops the labels, and a list of one label per file renames them (``""`` for
+none):
+
+.. code-block:: python
+
+   from opm_vis.pvplot import GridPlotter
+
+   plotter = GridPlotter(["tests/data/SPE1CASE1/SPE1CASE1"], z_scale=15.0)
+   plotter.add_slice("k", 0)
+   plotter.add_polygons("tests/data/SPE1CASE1/SPE1CASE1_POLYGONS.geojson", color="white")
+
+   plotter.set_scalars("PERMX", rstep=None)
+   plotter.view_2d("k")
+   plotter.show()
+
 Whole grid instead of a slice
 ------------------------------
 
@@ -368,3 +389,14 @@ than crossing it as a line:
    coll.plot(60, "SGAS")
    coll.plot_faults("tests/data/SPE1CASE1/SPE1CASE1_FAULTS.INC")
    coll.save_plot("sgas_faults.png")
+
+:meth:`~opm_vis.plot.collections._SlicePolyCollection.plot_polygons` does the same for polygon
+files; on an i- or j-slice, polygons with a depth are projected onto the slice and ``x y``
+outlines are skipped:
+
+.. code-block:: python
+
+   coll = SlicePoly2DCollection(["tests/data/SPE1CASE1/SPE1CASE1"], "k", 0)
+   coll.plot(None, "PERMX")
+   coll.plot_polygons("tests/data/SPE1CASE1/SPE1CASE1_POLYGONS.geojson")
+   coll.save_plot("permx_polygons.png")
