@@ -320,3 +320,22 @@ def test_plot_polygons_linewidth_defaults_to_2_and_can_be_changed(case1, polygon
 
     assert _line_collections(default.ax_)[0].get_linewidth()[0] == 2.0
     assert _line_collections(thick.ax_)[0].get_linewidth()[0] == 6.0
+
+
+def test_plot_title_can_be_turned_off(case1):
+    with_title = SlicePoly2DCollection([case1], "k", 0)
+    with_title.plot(60, "SGAS")
+    without_title = SlicePoly2DCollection([case1], "k", 0)
+    without_title.plot(60, "SGAS", title=False)
+
+    assert with_title.fig._suptitle.get_text() == "31.12.2019"  # pylint: disable=protected-access
+    assert without_title.fig._suptitle is None  # pylint: disable=protected-access
+
+
+def test_animate_title_can_be_turned_off(case1):
+    coll = SlicePoly2DCollection([case1], "k", 0)
+    coll.animate("SGAS", rstep_list=[0, 60], title=False)
+    coll.anim._init_draw()  # pylint: disable=protected-access
+    coll.anim._draw_frame(60)  # pylint: disable=protected-access
+
+    assert coll.fig._suptitle is None  # pylint: disable=protected-access

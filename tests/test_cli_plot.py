@@ -1104,3 +1104,31 @@ def test_fault_labels_can_be_turned_off(
 
     assert result.exit_code == 0, result.output
     assert seen["labels"] is expected
+
+
+# ---------------------------------------------------------------------------
+# --no-title
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("extra", [["-r", "60"], ["-r", "0:2", "--animate"]])
+def test_no_title_writes_output_file(case1_dir, runner, tmp_path, extra):
+    result = runner.invoke(
+        main,
+        ["-f", case1_dir, "-K", "SGAS", "-k", "1", *extra, "--no-title", "-sf", str(tmp_path)],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert any(tmp_path.iterdir())
+
+
+def test_no_title_leaves_the_title_out_of_the_saved_image(case1_dir, runner, tmp_path):
+    titled = tmp_path / "titled"
+    untitled = tmp_path / "untitled"
+    args = ["-f", case1_dir, "-K", "SGAS", "-k", "1", "-r", "60", "-sn", "img"]
+    runner.invoke(main, [*args, "-sf", str(titled)])
+    result = runner.invoke(main, [*args, "--no-title", "-sf", str(untitled)])
+
+    assert result.exit_code == 0, result.output
+    # Saved with bbox_inches="tight", so a figure without a title is cropped shorter
+    assert imread(untitled / "img.png").shape[0] < imread(titled / "img.png").shape[0]

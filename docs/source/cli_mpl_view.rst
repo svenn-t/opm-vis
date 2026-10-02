@@ -37,6 +37,16 @@ Hides the colorbar.
 
    opm-vis-mpl -f tests/data/SPE1CASE1 -K SGAS -k 1 -r 60 --no-colorbar
 
+``--no-title``
+-----------------
+
+Hides the report-date title above the plot, in a still image and in every frame of an
+animation. A saved still image is then also cropped without the room the title took.
+
+.. code-block:: bash
+
+   opm-vis-mpl -f tests/data/SPE1CASE1 -K SGAS -k 1 -r 60 --no-title
+
 ``--colorbar-label``, ``-clabel``
 -----------------------------------
 

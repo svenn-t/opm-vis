@@ -75,6 +75,7 @@ _ANIMATION_FOLDER = "mpl-gifs"
 )
 @click.option("--no-colorbar", is_flag=True, default=False, help="Hide the colorbar.")
 @COLORBAR_LABEL_OPTION
+@click.option("--no-title", is_flag=True, default=False, help="Hide the report-date title.")
 @click.option(
     "--figsize",
     type=(float, float),
@@ -133,6 +134,7 @@ def main(
     view: str,
     no_colorbar: bool,
     colorbar_label: str | None,
+    no_title: bool,
     figsize: tuple[float, float] | None,
     fault_path: str | None,
     fault_names: tuple[str, ...],
@@ -250,6 +252,7 @@ def main(
             calc_kind=calc_kind,
             calc_count=calc_count,
             colorbar_label=colorbar_label,
+            title=not no_title,
             **poly_kwargs,
         )
 
@@ -315,6 +318,7 @@ def main(
         keyword,
         colorbar=not no_colorbar,
         colorbar_label=colorbar_label,
+        title=not no_title,
         diff_rstep=resolved_diff_rstep,
         diff_kind=diff_kind,
         calc_kind=calc_kind,

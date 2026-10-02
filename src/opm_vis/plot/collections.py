@@ -472,6 +472,7 @@ class _SlicePolyCollection:
         calc_kind: str | None = None,
         calc_count: int | None = None,
         colorbar_label: str | None = None,
+        title: bool = True,
         **kwargs,
     ) -> None:
         """
@@ -510,6 +511,8 @@ class _SlicePolyCollection:
             Colorbar label instead of the generated keyword-and-unit one, by default None.
             Text between $ signs is rendered as math by Matplotlib's mathtext, e.g.
             "$k_x$ [mD]".
+        title : bool, optional
+            Put the report date in the figure title, by default True
         kwargs: optional
             Optional arguments passed to Poly3DCollection/PolyCollection
 
@@ -568,7 +571,8 @@ class _SlicePolyCollection:
 
             rdate = self.report.report_date(rstep)
             self.rdates.append(rdate)
-            self.set_title(rdate)
+            if title:
+                self.set_title(rdate)
 
         # Set colorbar
         if colorbar is True:
@@ -655,6 +659,7 @@ class _SlicePolyCollection:
         calc_kind: str | None = None,
         calc_count: int | None = None,
         colorbar_label: str | None = None,
+        title: bool = True,
         **kwargs,
     ) -> None:
         """
@@ -690,6 +695,8 @@ class _SlicePolyCollection:
             Colorbar label instead of the generated keyword-and-unit one, by default None.
             Text between $ signs is rendered as math by Matplotlib's mathtext, e.g.
             "$k_x$ [mD]".
+        title : bool, optional
+            Put the report date in the figure title, by default True
         kwargs: optional
             Optional arguments passed to Poly3DCollection/PolyCollection
 
@@ -744,6 +751,7 @@ class _SlicePolyCollection:
             colorbar=False,
             equal_clim=False,
             polyc_dict=polyc_dict,
+            title=title,
             **kwargs,
         )
 
