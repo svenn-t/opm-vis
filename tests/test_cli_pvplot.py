@@ -1676,3 +1676,63 @@ def test_font_scale_must_be_positive(case1_dir, runner):
 
     assert result.exit_code != 0
     assert "--font-scale" in result.output
+
+
+# ---------------------------------------------------------------------------
+# --camera
+# ---------------------------------------------------------------------------
+
+
+def test_camera_writes_output_file(case1_dir, offscreen, runner, tmp_path):
+    del offscreen
+    output = tmp_path / "out"
+
+    result = runner.invoke(
+        main,
+        [
+            "-f", case1_dir, "-K", "SGAS", "-k", "1", "-r", "60", "--view", "3d",
+            "--camera", "-20000,-20000,30000/5000,5000,-41750/0,0,1", "-sf", str(output),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert any(output.iterdir())
+
+
+@pytest.mark.parametrize(
+    ("extra", "message"),
+    [
+        (["--camera", "1,2,3/4,5,6"], "--camera: A camera is"),
+        (["--camera", "1,2,3/4,5,6/0,0,1", "--azimuth", "10"], "drop --azimuth"),
+    ],
+)
+def test_camera_misuse_is_rejected(case1_dir, runner, extra, message):
+    result = runner.invoke(main, ["-f", case1_dir, "-K", "SGAS", "-k", "1", "-r", "60", *extra])
+
+    assert result.exit_code != 0
+    assert message in result.output
+
+
+def test_interactive_window_prints_the_view_on_closing(case1_dir, runner, monkeypatch):
+    # GridPlotter is stubbed out, as in test_animate_without_save_plays_instead_of_writing_a_file,
+    # since a real interactive window would block until closed
+    from opm_vis.pvplot.camera import Camera, ShownView  # pylint: disable=import-outside-toplevel
+
+    fake_plotter = MagicMock()
+    fake_plotter.__enter__.return_value = fake_plotter
+    fake_plotter.case.report.report_steps.return_value = list(range(121))
+    camera = Camera((1.0, 2.0, 3.0), (4.0, 5.0, 6.0), (0.0, 0.0, 1.0), 7.0)
+    fake_plotter.show.return_value = ShownView(camera, (800, 600))
+    monkeypatch.setattr(
+        "opm_vis.cli.pvplot_cli.GridPlotter", MagicMock(return_value=fake_plotter)
+    )
+
+    result = runner.invoke(
+        main,
+        ["-f", case1_dir, "-K", "SGAS", "-k", "1", "-r", "60", "--camera", camera.to_text()],
+    )
+
+    assert result.exit_code == 0, result.output
+    fake_plotter.set_camera.assert_called_once_with(camera)
+    fake_plotter.show.assert_called_once_with(camera_overlay=True)
+    assert "View: --camera 1,2,3/4,5,6/0,0,1/7 --window-size 800 600" in result.output

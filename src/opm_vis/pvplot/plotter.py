@@ -13,6 +13,7 @@ import numpy as np
 import pyvista as pv
 from numpy.typing import NDArray
 
+from opm_vis.pvplot.camera import Camera, ShownView, camera_from_vtk
 from opm_vis.pvplot.data import CaseData
 from opm_vis.pvplot.faults import fault_surfaces
 from opm_vis.pvplot.labels import axis_titles, glyph_bar_title, scalar_bar_title, unit
@@ -74,6 +75,7 @@ _WELLS_OPEN = "pvplot-wells-open"
 _WELLS_SHUT = "pvplot-wells-shut"
 _WELL_LABELS = "pvplot-well-labels"
 _FAULT_LABELS = "pvplot-fault-labels"
+_CAMERA_TEXT = "pvplot-camera"
 
 # Cell array a vector's components are gathered into before glyphing. Reused across calls
 # rather than named after the keywords, since a glyph actor's source mesh may be shared (the
@@ -1571,16 +1573,103 @@ class GridPlotter:
         """
         return list(self._actors)
 
-    def show(self, **kwargs) -> None:
+    def camera(self) -> Camera:
+        """
+        The current camera, e.g. to reproduce this view later with set_camera
+
+        Returns
+        -------
+        Camera
+            Its position, focal point and view-up, plus its parallel scale (zoom) if the view
+            uses parallel projection, as view_2d does
+        """
+        cam = self.plotter.camera
+        return camera_from_vtk(
+            cam.GetPosition(),
+            cam.GetFocalPoint(),
+            cam.GetViewUp(),
+            cam.GetParallelScale() if cam.GetParallelProjection() else None,
+        )
+
+    def set_camera(self, camera: Camera | str) -> None:
+        """
+        Place the camera exactly, e.g. as camera() or a printed --camera value gave it
+
+        Parameters
+        ----------
+        camera : Camera | str
+            The camera, or its text form "X,Y,Z/FX,FY,FZ/UX,UY,UZ[/SCALE]" (see
+            Camera.from_text)
+
+        Raises
+        ------
+        ValueError
+            If camera is text that is not a valid camera
+
+        Notes
+        -----
+        Call this after view_2d/view_3d, which pick the projection: a camera with a parallel
+        scale switches to parallel projection, while one without keeps whichever projection
+        is in use. The values are in the scene's own coordinates, so they only reproduce a view
+        found with the same z_scale.
+        """
+        if isinstance(camera, str):
+            camera = Camera.from_text(camera)
+
+        cam = self.plotter.camera
+        cam.SetPosition(camera.position)
+        cam.SetFocalPoint(camera.focal_point)
+        cam.SetViewUp(camera.view_up)
+        if camera.parallel_scale is not None:
+            self.plotter.enable_parallel_projection()  # pyright: ignore[reportCallIssue]
+            cam.SetParallelScale(camera.parallel_scale)
+        self.plotter.reset_camera_clipping_range()
+
+    def show(self, *, camera_overlay: bool = False, **kwargs) -> ShownView | None:
         """
         Show the render window
 
         Parameters
         ----------
+        camera_overlay : bool, optional
+            Show the camera's current values in the lower left corner while the window is
+            open, updated whenever the view stops moving, by default False
         kwargs : optional
             Optional arguments passed to pyvista.Plotter.show
+
+        Returns
+        -------
+        ShownView | None
+            With camera_overlay, the camera and window size as they were when the window was
+            closed, e.g. to print as --camera/--window-size; otherwise None
         """
-        self.plotter.show(**kwargs)
+        if not camera_overlay:
+            self.plotter.show(**kwargs)
+            return None
+
+        final = {"camera": self.camera()}
+        window_size = tuple(self.plotter.window_size)
+
+        def update(*_args: Any) -> None:
+            final["camera"] = self.camera()
+            self.plotter.add_text(
+                f"--camera {final['camera'].to_text()}",
+                name=_CAMERA_TEXT,
+                position="lower_left",
+                font_size=self._label_font_size,
+            )
+            self.plotter.render()
+
+        def before_close(_plotter: pv.Plotter) -> None:
+            nonlocal window_size
+            final["camera"] = self.camera()
+            window_size = tuple(self.plotter.window_size)
+
+        update()
+        if self.plotter.iren is not None:
+            self.plotter.iren.add_observer("EndInteractionEvent", update)
+        self.plotter.show(before_close_callback=before_close, **kwargs)
+        return ShownView(final["camera"], (int(window_size[0]), int(window_size[1])))
 
     def screenshot(
         self, filename: str | Path | None = None, **kwargs

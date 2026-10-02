@@ -1591,3 +1591,48 @@ def test_font_scale_scales_the_theme_and_label_sizes(case1, offscreen):
 
     # The global theme other plotters start from is left alone
     assert pv.global_theme.font.size == base
+
+
+# ---------------------------------------------------------------------------
+# camera / set_camera / show(camera_overlay=True)
+# ---------------------------------------------------------------------------
+
+
+def test_set_camera_round_trips_through_camera(plotter):
+    plotter.add_slice("k", 0)
+    plotter.view_3d()
+    plotter.plotter.camera.Azimuth(20)
+    found = plotter.camera()
+
+    plotter.view_3d()  # move it away again
+    plotter.set_camera(found)
+
+    camera = plotter.camera()
+    assert camera.position == pytest.approx(found.position)
+    assert camera.focal_point == pytest.approx(found.focal_point)
+    assert camera.view_up == pytest.approx(found.view_up)
+    assert camera.parallel_scale is None
+
+
+def test_set_camera_with_a_scale_uses_parallel_projection(plotter):
+    plotter.add_slice("k", 0)
+    plotter.view_3d()
+
+    plotter.set_camera("5000,5000,90000/5000,5000,-8350/0,1,0/2500")
+
+    camera = plotter.camera()
+    assert camera.parallel_scale == pytest.approx(2500)
+    assert camera.position == pytest.approx((5000, 5000, 90000))
+    assert camera.view_up == pytest.approx((0, 1, 0))
+
+
+def test_show_with_camera_overlay_returns_the_view(plotter):
+    plotter.add_slice("k", 0)
+    plotter.view_2d("k")
+    expected = plotter.camera()
+
+    shown = plotter.show(camera_overlay=True)
+
+    assert shown is not None
+    assert shown.camera.position == pytest.approx(expected.position)
+    assert shown.window_size == (160, 120)

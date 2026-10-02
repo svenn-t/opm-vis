@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Literal
 
 import click
+from click.core import ParameterSource
 
 from opm_vis.cli.common import (
     CALCULATOR_OPTIONS,
@@ -38,6 +39,7 @@ from opm_vis.cli.common import (
     wants_save,
 )
 from opm_vis.pvplot import GridPlotter
+from opm_vis.pvplot.camera import Camera
 from opm_vis.utils.calc import resolve_calc_range
 from opm_vis.utils.grid import slice_dimension_size
 
@@ -129,6 +131,45 @@ def _expand_glyphs(
         f"takes one keyword base (e.g. DISP) or three keywords (e.g. DISPX DISPY DISPZ), "
         f"got {' '.join(value)}."
     )
+
+
+def _parse_camera(camera_text: str | None) -> Camera | None:
+    """
+    Parse --camera, rejecting it together with --azimuth/--elevation
+
+    Parameters
+    ----------
+    camera_text : str | None
+        Value of --camera
+
+    Returns
+    -------
+    Camera | None
+        None if --camera was not given
+
+    Raises
+    ------
+    click.UsageError
+        If the value is not a valid camera, or --azimuth/--elevation was also given
+    """
+    if camera_text is None:
+        return None
+
+    ctx = click.get_current_context()
+    given = [
+        f"--{name}"
+        for name in ("azimuth", "elevation")
+        if ctx.get_parameter_source(name) is ParameterSource.COMMANDLINE
+    ]
+    if given:
+        raise click.UsageError(
+            f"--camera places the camera exactly; drop {' and '.join(given)}, or drop --camera."
+        )
+
+    try:
+        return Camera.from_text(camera_text)
+    except ValueError as exc:
+        raise click.UsageError(f"--camera: {exc}") from exc
 
 
 def _parse_threshold(raw: str | None) -> float | tuple[float, float] | None:
@@ -239,6 +280,16 @@ def _wells_slices(
 @click.option("--azimuth", type=float, default=30.0, show_default=True, help="--view 3d only.")
 @click.option(
     "--elevation", type=float, default=45.0, show_default=True, help="--view 3d only."
+)
+@click.option(
+    "--camera",
+    "camera_text",
+    default=None,
+    metavar="X,Y,Z/FX,FY,FZ/UX,UY,UZ[/SCALE]",
+    help="Place the camera exactly: its position, the point it looks at, its view-up "
+    "direction and, for --view 2d, its zoom. The interactive window shows these values in its "
+    "lower left corner and prints them on closing, ready to paste. Reproduces the same view "
+    "only with the same --z-scale and --window-size. Replaces --azimuth/--elevation.",
 )
 @click.option(
     "--z-scale", type=float, default=5.0, show_default=True, help="Vertical exaggeration."
@@ -413,6 +464,7 @@ def main(
     view: str,
     azimuth: float,
     elevation: float,
+    camera_text: str | None,
     z_scale: float,
     axes: bool,
     log_scale: bool,
@@ -495,6 +547,7 @@ def main(
         )
     if fault_names and fault_path is None:
         raise click.UsageError("--fault-name needs --fault.")
+    camera = _parse_camera(camera_text)
     polygon_labels_value = polygon_labels_arg(
         polygon_paths, polygon_labels, show_polygon_labels
     )
@@ -602,6 +655,8 @@ def main(
             plotter.view_2d(slices[0][0])
         else:
             plotter.view_3d(azimuth=azimuth, elevation=elevation)
+        if camera is not None:
+            plotter.set_camera(camera)
 
         if axes:
             plotter.show_axes_grid()
@@ -759,7 +814,9 @@ def main(
             plotter.set_title()
 
         if not wants_save(save, save_folder):
-            plotter.show()
+            shown = plotter.show(camera_overlay=True)
+            if shown is not None:
+                click.echo(f"View: {shown.cli_options()}")
         else:
             keyword_tag = keyword or "GRID"
             if threshold_value is not None:

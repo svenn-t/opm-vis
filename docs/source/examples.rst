@@ -246,6 +246,25 @@ Use ``off_screen=True`` on a machine with no display, as above; ``GridPlotter`` 
 context manager (``with GridPlotter(...) as plotter:``), which closes the render window on
 exit.
 
+:meth:`~opm_vis.pvplot.GridPlotter.camera` returns the current camera, and
+:meth:`~opm_vis.pvplot.GridPlotter.set_camera` puts it back, from a
+:class:`~opm_vis.pvplot.camera.Camera` or its text form. ``show(camera_overlay=True)`` shows the
+camera in the window while it is open and returns the camera and window size it was closed
+with, so a view found interactively can be saved exactly:
+
+.. code-block:: python
+
+   shown = plotter.show(camera_overlay=True)
+   print(shown.cli_options())  # --camera X,Y,Z/FX,FY,FZ/UX,UY,UZ[/SCALE] --window-size W H
+
+   with GridPlotter(["tests/data/SPE1CASE1/SPE1CASE1"], off_screen=True,
+                    window_size=shown.window_size) as again:
+       again.add_slice("k", 0)
+       again.set_scalars("SGAS", rstep=60)
+       again.view_2d("k")
+       again.set_camera(shown.camera)
+       again.screenshot("sgas.png")
+
 Reading data directly
 ------------------------
 
