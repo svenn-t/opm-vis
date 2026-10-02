@@ -1,6 +1,7 @@
 """ Interactive PyVista plotter for OPM simulation results """
 from __future__ import annotations
 
+import copy
 import time
 import warnings
 from collections.abc import Sequence
@@ -79,6 +80,9 @@ _FAULT_LABELS = "pvplot-fault-labels"
 # full grid) with other actors that should not see a per-keyword array appear on it.
 _GLYPH_VECTORS = "GLYPH_VECTORS"
 
+# Font size of the date title and of well, fault and polygon labels, before font_scale
+_LABEL_FONT_SIZE = 10
+
 
 @dataclass
 class _MeshActor:
@@ -118,6 +122,32 @@ class _GlyphSpec:
     every_n: int
 
 
+
+def _scaled_font_theme(font_scale: float) -> pv.themes.Theme:
+    """
+    Copy of PyVista's global theme with its font sizes scaled
+
+    Parameters
+    ----------
+    font_scale : float
+        Factor to scale the theme's font size, title size and label size by
+
+    Returns
+    -------
+    pv.themes.Theme
+        The copy, so the global theme other plotters use is left untouched
+    """
+    # A deep copy: Theme.load_theme shares the font settings object with the theme it loads
+    # from, so scaling a load_theme copy would scale the global theme too
+    theme = copy.deepcopy(pv.global_theme)
+    font = theme.font
+    font.size = max(1, round(font.size * font_scale))
+    if font.title_size is not None:
+        font.title_size = max(1, round(font.title_size * font_scale))
+    if font.label_size is not None:
+        font.label_size = max(1, round(font.label_size * font_scale))
+    return theme
+
 class GridPlotter:
     """
     Plot simulation results on the corner-point grid with PyVista.
@@ -141,6 +171,7 @@ class GridPlotter:
         window_size: tuple[int, int] | None = None,
         z_scale: float = 1.0,
         weld: bool = True,
+        font_scale: float = 1.0,
     ) -> None:
         """
         Initialize by setting up the render window and instantiating helper classes
@@ -160,9 +191,13 @@ class GridPlotter:
             thick, so a value above 1 is usually needed to see layering.
         weld : bool, optional
             Merge coincident grid corner points, by default True. See GridMesh.
+        font_scale : float, optional
+            Scale every text size by this factor, by default 1.0: the scalar bars and axes
+            (PyVista theme sizes) as well as the date title and well, fault and polygon labels
         """
         # Internalize input
         self.paths = paths
+        self._label_font_size = max(1, round(_LABEL_FONT_SIZE * font_scale))
 
         # Instantiate help classes
         self.case = CaseData(paths)
@@ -175,6 +210,7 @@ class GridPlotter:
         self.plotter = pv.Plotter(
             off_screen=off_screen,
             window_size=list(window_size) if window_size is not None else None,
+            theme=_scaled_font_theme(font_scale),
         )
         if z_scale != 1.0:
             # pv.Plotter.set_scale is wrapped with functools.wraps(Renderer.set_scale), which
@@ -404,7 +440,7 @@ class GridPlotter:
                 self._label_anchor_points(surfaces.label_points),
                 surfaces.label_names,
                 name=_FAULT_LABELS,
-                font_size=10,
+                font_size=self._label_font_size,
                 shape=None,
                 always_visible=True,
                 show_points=False,
@@ -490,7 +526,7 @@ class GridPlotter:
                 self._label_anchor_points(lines.label_points),
                 lines.label_names,
                 name=f"{registered}-labels",
-                font_size=10,
+                font_size=self._label_font_size,
                 text_color=kwargs["color"],
                 shape=None,
                 always_visible=True,
@@ -693,7 +729,7 @@ class GridPlotter:
                 self._label_anchor_points(paths.label_points),
                 paths.label_names,
                 name=_WELL_LABELS,
-                font_size=10,
+                font_size=self._label_font_size,
                 shape=None,
                 always_visible=True,
                 show_points=False,
@@ -1519,7 +1555,9 @@ class GridPlotter:
                 )
             text = self.case.report.report_date(self.rstep).strftime("%d.%m.%Y")
 
-        self.plotter.add_text(text, name=_TITLE_NAME, position="upper_edge", font_size=10)
+        self.plotter.add_text(
+            text, name=_TITLE_NAME, position="upper_edge", font_size=self._label_font_size
+        )
         self.title = text
 
     def actor_names(self) -> list[str]:

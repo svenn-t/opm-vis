@@ -81,3 +81,15 @@ Hides the report-date title.
 .. code-block:: bash
 
    opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 -r 60 --no-title
+
+``--font-scale``
+------------------
+
+Scales every text size by this factor: the title, axis labels and ticks, the scalar bar, and the
+well, fault and polygon labels. Default: 1.0. pvplot places its scalar bars and axes at fixed
+positions, so a large factor can push text past the window's edge; a larger ``--window-size``
+makes room for it.
+
+.. code-block:: bash
+
+   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 -r 60 --font-scale 1.5

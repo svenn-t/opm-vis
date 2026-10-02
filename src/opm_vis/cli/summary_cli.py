@@ -11,11 +11,13 @@ from click.core import ParameterSource
 from opm_vis.cli.common import (
     COMMAND_SETTINGS,
     FOLDER_OPTION,
+    FONT_SCALE_OPTION,
     SAVE_OPTION,
     check_curve_option_count,
     check_figsize,
     default_summary_output_name,
     handle_errors,
+    matplotlib_font_scale,
     resolve_case_groups,
     resolve_paths,
     resolve_subplot_layout,
@@ -278,7 +280,9 @@ def _parse_xlim(raw: tuple[str, str] | None, x_axis: str) -> tuple[Any, Any] | N
 )
 @SAVE_OPTION
 @save_folder_option(_FIGURE_FOLDER)
+@FONT_SCALE_OPTION
 @handle_errors
+@matplotlib_font_scale
 # pylint: disable=too-many-arguments,too-many-locals
 def main(
     folders: tuple[str, ...],
@@ -302,6 +306,7 @@ def main(
     export: str | None,
     save: bool,
     save_folder: str | None,
+    font_scale: float,
 ) -> None:
     """
     Plot summary vectors - the time series in a case's .SMSPEC/.UNSMRY files - such as FOPR,

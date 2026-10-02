@@ -551,3 +551,28 @@ def test_save_folder_that_is_a_file_is_rejected(case1_dir, runner, tmp_path):
 
     assert result.exit_code != 0
     assert "is a file" in result.output
+
+
+def test_font_scale_writes_output_file(case1_dir, runner, tmp_path):
+    output = tmp_path / "out"
+
+    result = runner.invoke(main, ["-f", case1_dir, "-K", "FOPR", "--font-scale", "1.5", "-sf", str(output)])
+
+    assert result.exit_code == 0, result.output
+    assert any(output.iterdir())
+
+
+def test_font_scale_must_be_positive(case1_dir, runner):
+    result = runner.invoke(main, ["-f", case1_dir, "-K", "FOPR", "--font-scale", "0"])
+
+    assert result.exit_code != 0
+    assert "--font-scale" in result.output
+
+
+def test_font_scale_does_not_leak_into_later_plots(case1_dir, runner, tmp_path):
+    before = matplotlib.rcParams["font.size"]
+
+    result = runner.invoke(main, ["-f", case1_dir, "-K", "FOPR", "--font-scale", "2", "-sf", str(tmp_path)])
+
+    assert result.exit_code == 0, result.output
+    assert matplotlib.rcParams["font.size"] == before

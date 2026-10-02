@@ -111,3 +111,13 @@ Repeatable in the same way as ``--linestyle``: once for every curve, or once per
 
 Under ``--compare``, a colour given for a keyword applies to every case plotting it - the cases
 are then told apart only by the legend, not by colour.
+
+``--font-scale``
+------------------
+
+Scales every text size by this factor: the title, axis labels and ticks, and the legend.
+Default: 1.0.
+
+.. code-block:: bash
+
+   opm-vis-sum -f tests/data/SPE1CASE1 -K FOPR --font-scale 1.5

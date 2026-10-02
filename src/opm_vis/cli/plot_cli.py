@@ -14,6 +14,7 @@ from opm_vis.cli.common import (
     GRID_ONLY_OPTIONS,
     KEYWORD_OPTION,
     FOLDER_OPTION,
+    FONT_SCALE_OPTION,
     POLYGON_OPTIONS,
     RSTEP_OR_ANIMATE_OPTIONS,
     SAVE_OPTION,
@@ -24,6 +25,7 @@ from opm_vis.cli.common import (
     default_output_name,
     grid_color_kwargs,
     handle_errors,
+    matplotlib_font_scale,
     parse_rstep,
     polygon_labels_arg,
     resolve_animate_rsteps,
@@ -96,7 +98,9 @@ _ANIMATION_FOLDER = "mpl-gifs"
 )
 @add_options(POLYGON_OPTIONS)
 @SHOW_EDGES_OPTION
+@FONT_SCALE_OPTION
 @handle_errors
+@matplotlib_font_scale
 # pylint: disable=too-many-arguments,too-many-locals
 def main(
     folders: tuple[str, ...],
@@ -128,6 +132,7 @@ def main(
     polygon_labels: tuple[str, ...],
     show_polygon_labels: bool,
     show_edges: bool,
+    font_scale: float,
 ) -> None:
     """
     Plot --keyword on one grid slice with the Matplotlib backend, or animate it over report

@@ -14,6 +14,7 @@ from opm_vis.cli.common import (
     GRID_ONLY_OPTIONS,
     KEYWORD_OPTION,
     FOLDER_OPTION,
+    FONT_SCALE_OPTION,
     POLYGON_OPTIONS,
     RSTEP_OR_ANIMATE_OPTIONS,
     SAVE_OPTION,
@@ -386,6 +387,7 @@ def _wells_slices(
         "flat colour. An explicit colour overrides magnitude colouring."
     ),
 )
+@FONT_SCALE_OPTION
 @handle_errors
 # pylint: disable=too-many-arguments,too-many-locals
 def main(
@@ -440,6 +442,7 @@ def main(
     glyph_every_n: int,
     glyph_factor: float | None,
     glyph_color: str,
+    font_scale: float,
 ) -> None:
     """
     Plot --keyword on one or more grid slices with the PyVista backend, or animate it over
@@ -510,6 +513,7 @@ def main(
         off_screen=wants_save(save, save_folder),
         window_size=window_size,
         z_scale=z_scale,
+        font_scale=font_scale,
     ) as plotter:
         calc_end = None
         if calc_slice is not None:

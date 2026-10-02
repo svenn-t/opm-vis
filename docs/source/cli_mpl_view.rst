@@ -58,3 +58,13 @@ Draws each cell's outline on top of its fill colour.
 .. code-block:: bash
 
    opm-vis-mpl -f tests/data/SPE1CASE1 -K SGAS -k 1 -r 60 --show-edges
+
+``--font-scale``
+------------------
+
+Scales every text size by this factor: the title, axis labels and ticks, the colorbar, and the
+well, fault and polygon labels. Default: 1.0.
+
+.. code-block:: bash
+
+   opm-vis-mpl -f tests/data/SPE1CASE1 -K SGAS -k 1 -r 60 --font-scale 1.5

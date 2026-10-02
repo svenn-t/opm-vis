@@ -207,6 +207,15 @@ def polygon_labels_arg(
         return False
     return list(polygon_labels) if polygon_labels else True
 
+FONT_SCALE_OPTION = click.option(
+    "--font-scale",
+    type=click.FloatRange(min=0, min_open=True),
+    default=1.0,
+    show_default=True,
+    metavar="FACTOR",
+    help="Scale every text size by this factor, e.g. 1.5 for 50% bigger text.",
+)
+
 CMAP_OPTION = click.option(
     "--cmap", default="viridis", show_default=True, help="Matplotlib colour map name."
 )
@@ -1156,6 +1165,39 @@ def resolve_keyword_rstep(
     if keyword in restart_reader.available_keywords(probe_rstep):
         raise require_dynamic_keyword_error(keyword)
     return probe_rstep
+
+
+def matplotlib_font_scale(func: Callable) -> Callable:
+    """
+    Run a Matplotlib command callback with its text scaled by --font-scale
+
+    Parameters
+    ----------
+    func : Callable
+        Command callback taking a font_scale argument (see FONT_SCALE_OPTION)
+
+    Returns
+    -------
+    Callable
+        Wrapped callback, run inside a Matplotlib rc_context with font.size scaled
+
+    Notes
+    -----
+    Matplotlib sizes titles, axis labels, ticks, colorbars, legends and annotations relative to
+    font.size by default, so scaling that one setting scales every text element together. The
+    rc_context restores it afterwards, so it never leaks into another plot in the same process.
+    """
+
+    @wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        # Imported here: opm-vis-pv shares this module but does not otherwise need Matplotlib
+        import matplotlib as mpl  # pylint: disable=import-outside-toplevel
+
+        scaled = {"font.size": mpl.rcParams["font.size"] * kwargs["font_scale"]}
+        with mpl.rc_context(scaled):
+            return func(*args, **kwargs)
+
+    return wrapper
 
 
 def handle_errors(func: Callable) -> Callable:

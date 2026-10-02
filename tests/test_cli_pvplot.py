@@ -1659,3 +1659,20 @@ def test_polygon_outside_the_grid_is_warned_about(case1_dir, offscreen, runner, 
         )
 
     assert result.exit_code == 0, result.output
+
+
+def test_font_scale_writes_output_file(case1_dir, offscreen, runner, tmp_path):
+    del offscreen
+    output = tmp_path / "out"
+
+    result = runner.invoke(main, ["-f", case1_dir, "-K", "SGAS", "-k", "1", "-r", "60", "--font-scale", "1.5", "-sf", str(output)])
+
+    assert result.exit_code == 0, result.output
+    assert any(output.iterdir())
+
+
+def test_font_scale_must_be_positive(case1_dir, runner):
+    result = runner.invoke(main, ["-f", case1_dir, "-K", "SGAS", "-k", "1", "-r", "60", "--font-scale", "0"])
+
+    assert result.exit_code != 0
+    assert "--font-scale" in result.output

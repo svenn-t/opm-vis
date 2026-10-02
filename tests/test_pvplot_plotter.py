@@ -1574,3 +1574,20 @@ def test_add_polygons_labels(plotter, polygon_files):
     actors = list(plotter.plotter.actors)
     assert any(n.startswith("relabelled-labels") for n in actors)
     assert not any(n.startswith("unlabelled-labels") for n in actors)
+
+
+# ---------------------------------------------------------------------------
+# font_scale
+# ---------------------------------------------------------------------------
+
+
+def test_font_scale_scales_the_theme_and_label_sizes(case1, offscreen):
+    del offscreen
+    base = pv.global_theme.font.size
+
+    with GridPlotter([case1], off_screen=True, window_size=(160, 120), font_scale=2.0) as gplot:
+        assert gplot.plotter.theme.font.size == round(base * 2.0)
+        assert gplot._label_font_size == 20
+
+    # The global theme other plotters start from is left alone
+    assert pv.global_theme.font.size == base
