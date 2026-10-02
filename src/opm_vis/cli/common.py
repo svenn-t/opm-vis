@@ -237,6 +237,71 @@ def polygon_labels_arg(
         return False
     return list(polygon_labels) if polygon_labels else True
 
+COLORBAR_LABEL_OPTION = click.option(
+    "--colorbar-label",
+    "-clabel",
+    "colorbar_label",
+    default=None,
+    metavar="TEXT",
+    help="Colour bar label instead of the generated keyword and unit. Text between $ signs is "
+    "rendered as math, LaTeX-style: e.g. '$k_x$ [mD]' or '$\\Delta p$ [bar]' (single-quote it "
+    "so the shell leaves the $ alone).",
+)
+
+
+def check_colorbar_label(
+    colorbar_label: str | None, *, no_colorbar: bool, grid_only: bool
+) -> None:
+    """
+    Reject --colorbar-label where there is no colour bar to label
+
+    Parameters
+    ----------
+    colorbar_label : str | None
+        Value of --colorbar-label
+    no_colorbar : bool
+        Value of --no-colorbar
+    grid_only : bool
+        Value of --grid-only, which colours by no keyword and so has no colour bar
+
+    Raises
+    ------
+    click.UsageError
+        If --colorbar-label is given with --no-colorbar or --grid-only, or its math (text
+        between $ signs) is not valid mathtext
+
+    Notes
+    -----
+    Both backends render math with Matplotlib's mathtext (opm-vis-pv through VTK's MathText,
+    which uses it), so laying the label out once here catches a typo in either up front, as a
+    clean error - instead of a traceback when Matplotlib saves the figure, or VTK quietly
+    logging a warning and drawing the label wrong.
+    """
+    if colorbar_label is None:
+        return
+    if no_colorbar:
+        raise click.UsageError("--colorbar-label has no colour bar to label with --no-colorbar.")
+    if grid_only:
+        raise click.UsageError("--colorbar-label has no colour bar to label with --grid-only.")
+
+    if "$" in colorbar_label:
+        # Imported here: only needed for a label with math in it
+        # pylint: disable=import-outside-toplevel
+        from matplotlib.backends.backend_agg import FigureCanvasAgg
+        from matplotlib.figure import Figure
+
+        figure = Figure()
+        FigureCanvasAgg(figure)
+        figure.text(0, 0, colorbar_label)
+        try:
+            figure.canvas.draw()
+        except ValueError as exc:
+            raise click.UsageError(
+                f"--colorbar-label '{colorbar_label}' has invalid math: "
+                f"{str(exc).strip().splitlines()[-1]}"
+            ) from exc
+
+
 FONT_SCALE_OPTION = click.option(
     "--font-scale",
     type=click.FloatRange(min=0, min_open=True),

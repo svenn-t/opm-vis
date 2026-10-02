@@ -73,6 +73,20 @@ Hides the scalar bar.
 
    opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 -r 60 --no-colorbar
 
+``--colorbar-label``, ``-clabel``
+-----------------------------------
+
+Label for the scalar bar instead of the generated keyword and unit. Text between ``$`` signs is
+rendered as math, LaTeX-style, by VTK's MathText, which uses Matplotlib's mathtext: subscripts and superscripts,
+Greek letters, ``\frac``, ``\bar`` and so on. Single-quote the label so the shell leaves the
+``$`` alone. Invalid math is reported as an error before anything is plotted, and the option
+is rejected with ``--no-colorbar`` or ``--grid-only``, which have no scalar bar to label.
+
+.. code-block:: bash
+
+   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 -r 60 -clabel '$S_g$ [-]'
+   opm-vis-pv -f tests/data/SPE1CASE1 -K PRESSURE -k 1 -r 60 -d -clabel '$\Delta p$ [psi]'
+
 ``--no-title``
 -----------------
 

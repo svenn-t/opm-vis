@@ -909,6 +909,7 @@ class GridPlotter:
         slice_ind: int | None = None,
         calc_kind: str | None = None,
         calc_count: int | None = None,
+        scalar_bar_title: str | None = None,
     ) -> None:
         """
         Colour everything that has been added by one keyword at one report step
@@ -949,6 +950,9 @@ class GridPlotter:
             Limit calc_kind's layer range to this many further layers after slice_ind, which is
             always included itself, by default None (continue to the grid's last layer). Only
             used when calc_kind is given.
+        scalar_bar_title : str | None, optional
+            Scalar bar title instead of the generated keyword-and-unit one, by default None.
+            Text between $ signs is rendered as math by VTK's MathText, e.g. "$k_x$ [mD]".
 
         Notes
         -----
@@ -1040,6 +1044,7 @@ class GridPlotter:
                 keyword,
                 diff_kind=diff_kind if diff_rstep is not None else None,
                 calc_kind=calc_kind,
+                title=scalar_bar_title,
             )
 
         # Record what is currently shown, for the scalar bar and title
@@ -1070,6 +1075,7 @@ class GridPlotter:
         *,
         diff_kind: str | None = None,
         calc_kind: str | None = None,
+        title: str | None = None,
     ) -> None:
         """
         Show a scalar bar for the keyword, replacing any bar for a different one
@@ -1087,8 +1093,14 @@ class GridPlotter:
         calc_kind : str | None, optional
             Passed straight through to labels.scalar_bar_title; see set_scalars, by default
             None
+        title : str | None, optional
+            Title to use instead of the generated one, by default None; see set_scalars'
+            scalar_bar_title
         """
-        title = scalar_bar_title(self.label, keyword, diff_kind=diff_kind, calc_kind=calc_kind)
+        if title is None:
+            title = scalar_bar_title(
+                self.label, keyword, diff_kind=diff_kind, calc_kind=calc_kind
+            )
 
         # Only the report step usually changes, and the bar already reads correctly then
         if title == self._scalar_bar_title:

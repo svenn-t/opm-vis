@@ -471,6 +471,7 @@ class _SlicePolyCollection:
         diff_kind: str = "plain",
         calc_kind: str | None = None,
         calc_count: int | None = None,
+        colorbar_label: str | None = None,
         **kwargs,
     ) -> None:
         """
@@ -505,6 +506,10 @@ class _SlicePolyCollection:
             Limit calc_kind's layer range to this many further layers after each slice's own
             index, which is always included itself, by default None (continue to the grid's
             last layer). Only used when calc_kind is given.
+        colorbar_label : str | None, optional
+            Colorbar label instead of the generated keyword-and-unit one, by default None.
+            Text between $ signs is rendered as math by Matplotlib's mathtext, e.g.
+            "$k_x$ [mD]".
         kwargs: optional
             Optional arguments passed to Poly3DCollection/PolyCollection
 
@@ -576,7 +581,9 @@ class _SlicePolyCollection:
                 )
 
             # Following above warning, we only need to use the first slice
-            clabel = self._colorbar_label(keyword, diff_rstep, diff_kind, calc_kind)
+            clabel = colorbar_label or self._colorbar_label(
+                keyword, diff_rstep, diff_kind, calc_kind
+            )
             self.fig.colorbar(polyc_rstep[0], ax=self.ax_, label=clabel)
 
     def _colorbar_label(
@@ -647,6 +654,7 @@ class _SlicePolyCollection:
         diff_kind: str = "plain",
         calc_kind: str | None = None,
         calc_count: int | None = None,
+        colorbar_label: str | None = None,
         **kwargs,
     ) -> None:
         """
@@ -678,6 +686,10 @@ class _SlicePolyCollection:
             Limit calc_kind's layer range to this many further layers after each slice's own
             index, which is always included itself, by default None (continue to the grid's
             last layer). Only used when calc_kind is given.
+        colorbar_label : str | None, optional
+            Colorbar label instead of the generated keyword-and-unit one, by default None.
+            Text between $ signs is rendered as math by Matplotlib's mathtext, e.g.
+            "$k_x$ [mD]".
         kwargs: optional
             Optional arguments passed to Poly3DCollection/PolyCollection
 
@@ -717,7 +729,9 @@ class _SlicePolyCollection:
         )
 
         # Set colorbar for the whole animation
-        clabel = self._colorbar_label(keyword, diff_rstep, diff_kind, calc_kind)
+        clabel = colorbar_label or self._colorbar_label(
+            keyword, diff_rstep, diff_kind, calc_kind
+        )
         self.fig.colorbar(polyc_dict[anim_rsteps[0]][0], ax=self.ax_, label=clabel)
 
         # Setup plot function to fit with FuncAnimation. diff_rstep/diff_kind/calc_kind/

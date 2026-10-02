@@ -1001,3 +1001,38 @@ def test_save_name_must_be_a_plain_file_name(case1_dir, runner, name, message):
 
     assert result.exit_code != 0
     assert message in result.output
+
+
+# ---------------------------------------------------------------------------
+# --colorbar-label
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("extra", [["-r", "60"], ["-r", "0:2", "--animate"]])
+def test_colorbar_label_with_math_writes_output_file(case1_dir, runner, tmp_path, extra):
+    result = runner.invoke(
+        main,
+        ["-f", case1_dir, "-K", "SGAS", "-k", "1", *extra, "-clabel", r"$S_g$ [-]",
+         "-sf", str(tmp_path)],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert any(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize(
+    ("extra", "message"),
+    [
+        (["-K", "SGAS", "-r", "60", "--no-colorbar"], "with --no-colorbar"),
+        (["--grid-only"], "with --grid-only"),
+        (["-K", "SGAS", "-r", "60", "-clabel", r"$\frac{1$"], "invalid math"),
+    ],
+)
+def test_colorbar_label_misuse_is_rejected(case1_dir, runner, extra, message):
+    if "-clabel" not in extra:
+        extra = [*extra, "-clabel", "label"]
+    result = runner.invoke(main, ["-f", case1_dir, "-k", "1", *extra])
+
+    assert result.exit_code != 0
+    assert message in result.output
+    assert "Traceback" not in result.output

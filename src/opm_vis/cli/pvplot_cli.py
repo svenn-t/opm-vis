@@ -10,6 +10,7 @@ from opm_vis.cli.common import (
     CALCULATOR_OPTIONS,
     CLIM_OPTION,
     CMAP_OPTION,
+    COLORBAR_LABEL_OPTION,
     COMMAND_SETTINGS,
     DIFF_OPTIONS,
     GRID_ONLY_OPTIONS,
@@ -23,6 +24,7 @@ from opm_vis.cli.common import (
     SHOW_EDGES_OPTION,
     SLICE_OPTIONS,
     add_options,
+    check_colorbar_label,
     default_output_name,
     grid_color_kwargs,
     handle_errors,
@@ -393,6 +395,7 @@ def _wells_slices(
 )
 @click.option("--window-size", type=(int, int), default=None, metavar="WIDTH HEIGHT")
 @click.option("--no-colorbar", is_flag=True, default=False, help="Hide the scalar bar.")
+@COLORBAR_LABEL_OPTION
 @click.option("--no-title", is_flag=True, default=False, help="Hide the report-date title.")
 @click.option(
     "--glyphs",
@@ -491,6 +494,7 @@ def main(
     opacity: float,
     window_size: tuple[int, int] | None,
     no_colorbar: bool,
+    colorbar_label: str | None,
     no_title: bool,
     glyphs: tuple[str, str, str] | None,
     glyph_scale: bool,
@@ -550,6 +554,7 @@ def main(
         )
     if fault_names and fault_path is None:
         raise click.UsageError("--fault-name needs --fault.")
+    check_colorbar_label(colorbar_label, no_colorbar=no_colorbar, grid_only=grid_only)
     camera = _parse_camera(camera_text)
     polygon_labels_value = polygon_labels_arg(
         polygon_paths, polygon_labels, show_polygon_labels
@@ -742,6 +747,7 @@ def main(
                 slice_ind=calc_slice_ind,
                 calc_kind=calc_kind,
                 calc_count=calc_count,
+                scalar_bar_title=colorbar_label,
             )
             return
 
@@ -784,6 +790,7 @@ def main(
                 cmap=cmap,
                 log_scale=log_scale,
                 scalar_bar=not no_colorbar,
+                scalar_bar_title=colorbar_label,
                 diff_rstep=resolved_diff_rstep,
                 diff_kind=diff_kind,
                 slice_dim=calc_slice_dim,

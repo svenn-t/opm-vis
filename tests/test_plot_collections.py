@@ -302,3 +302,11 @@ def test_plot_polygons_warns_about_a_polygon_outside_the_slice(case1, tmp_path):
 
     with pytest.warns(UserWarning, match=r"outside the plotted grid.*km \(km\.npy\)"):
         coll.plot_polygons(str(path))
+
+
+def test_plot_colorbar_label_replaces_the_generated_one(case1):
+    coll = SlicePoly2DCollection([case1], "k", 0)
+    coll.plot(None, "PERMX", colorbar_label="$k_x$ [mD]")
+
+    colorbar_axes = coll.fig.axes[-1]
+    assert colorbar_axes.get_ylabel() == "$k_x$ [mD]"

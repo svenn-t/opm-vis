@@ -1636,3 +1636,10 @@ def test_show_with_camera_overlay_returns_the_view(plotter):
     assert shown is not None
     assert shown.camera.position == pytest.approx(expected.position)
     assert shown.window_size == (160, 120)
+
+
+def test_set_scalars_scalar_bar_title_replaces_the_generated_one(plotter):
+    plotter.add_slice("k", 0)
+    plotter.set_scalars("PERMX", None, scalar_bar_title="$k_x$ [mD]")
+
+    assert list(plotter.plotter.scalar_bars.keys()) == ["$k_x$ [mD]"]

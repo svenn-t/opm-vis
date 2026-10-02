@@ -9,6 +9,7 @@ from opm_vis.cli.common import (
     CALCULATOR_OPTIONS,
     CLIM_OPTION,
     CMAP_OPTION,
+    COLORBAR_LABEL_OPTION,
     COMMAND_SETTINGS,
     DIFF_OPTIONS,
     GRID_ONLY_OPTIONS,
@@ -22,6 +23,7 @@ from opm_vis.cli.common import (
     SHOW_EDGES_OPTION,
     SLICE_OPTIONS,
     add_options,
+    check_colorbar_label,
     check_figsize,
     default_output_name,
     grid_color_kwargs,
@@ -71,6 +73,7 @@ _ANIMATION_FOLDER = "mpl-gifs"
     help="Camera preset.",
 )
 @click.option("--no-colorbar", is_flag=True, default=False, help="Hide the colorbar.")
+@COLORBAR_LABEL_OPTION
 @click.option(
     "--figsize",
     type=(float, float),
@@ -127,6 +130,7 @@ def main(
     clim: tuple[float, float] | None,
     view: str,
     no_colorbar: bool,
+    colorbar_label: str | None,
     figsize: tuple[float, float] | None,
     fault_path: str | None,
     fault_names: tuple[str, ...],
@@ -168,6 +172,7 @@ def main(
         )
     if fault_names and fault_path is None:
         raise click.UsageError("--fault-name needs --fault.")
+    check_colorbar_label(colorbar_label, no_colorbar=no_colorbar, grid_only=grid_only)
     polygon_labels_value = polygon_labels_arg(
         polygon_paths, polygon_labels, show_polygon_labels
     )
@@ -234,6 +239,7 @@ def main(
             diff_kind=diff_kind,
             calc_kind=calc_kind,
             calc_count=calc_count,
+            colorbar_label=colorbar_label,
             **poly_kwargs,
         )
 
@@ -298,6 +304,7 @@ def main(
         actual_rstep,
         keyword,
         colorbar=not no_colorbar,
+        colorbar_label=colorbar_label,
         diff_rstep=resolved_diff_rstep,
         diff_kind=diff_kind,
         calc_kind=calc_kind,
