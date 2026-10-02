@@ -15,6 +15,7 @@ from opm_vis.cli.common import (
     DIFF_OPTIONS,
     GRID_ONLY_OPTIONS,
     KEYWORD_OPTION,
+    FAULT_LABELS_OPTION,
     FOLDER_OPTION,
     FONT_SCALE_OPTION,
     POLYGON_OPTIONS,
@@ -336,6 +337,7 @@ def _wells_slices(
     "on the chosen -i/-j/-k slice(s) is drawn, or every fault in the file if no slice was "
     "given.",
 )
+@FAULT_LABELS_OPTION
 @add_options(POLYGON_OPTIONS)
 @SHOW_EDGES_OPTION
 @click.option(
@@ -479,6 +481,7 @@ def main(
     wireframe: bool,
     fault_path: str | None,
     fault_names: tuple[str, ...],
+    fault_labels: bool,
     polygon_paths: tuple[str, ...],
     polygon_color: str,
     polygon_linewidth: float | None,
@@ -648,7 +651,10 @@ def main(
 
         if fault_path is not None:
             plotter.add_faults(
-                fault_path, names=list(fault_names) or None, slices=slices or None
+                fault_path,
+                names=list(fault_names) or None,
+                slices=slices or None,
+                labels=fault_labels,
             )
         if polygon_paths:
             # A flat x,y outline at the top of the grid is only seen edge-on in a 2D view of an

@@ -1077,3 +1077,30 @@ def test_polygon_linewidth_must_be_positive(case1_dir, polygon_files, runner, wi
 
     assert result.exit_code != 0
     assert "--polygon-linewidth" in result.output
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [([], True), (["--fault-labels"], True), (["--no-fault-labels"], False)],
+)
+def test_fault_labels_can_be_turned_off(
+    case1_dir, fault_file, runner, tmp_path, monkeypatch, args, expected
+):
+    seen = {}
+    original = _SlicePolyCollection.plot_faults
+
+    def spy(self, *spy_args, **spy_kwargs):
+        seen.update(spy_kwargs)
+        return original(self, *spy_args, **spy_kwargs)
+
+    monkeypatch.setattr(_SlicePolyCollection, "plot_faults", spy)
+    result = runner.invoke(
+        main,
+        [
+            "-f", case1_dir, "-K", "SGAS", "-k", "1", "-r", "60", "--fault", fault_file,
+            *args, "-sf", str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert seen["labels"] is expected

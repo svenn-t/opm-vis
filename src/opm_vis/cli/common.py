@@ -162,6 +162,14 @@ def save_folder_option(figure_folder: str, animation_folder: str | None = None) 
     )
 
 
+FAULT_LABELS_OPTION = click.option(
+    "--fault-labels/--no-fault-labels",
+    "fault_labels",
+    default=True,
+    show_default=True,
+    help="Label each fault with its name. Only used with --fault.",
+)
+
 # Polygons in the plot's own coordinates; see opm_vis.utils.polygons.read_polygons
 POLYGON_OPTIONS = [
     click.option(

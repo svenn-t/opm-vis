@@ -24,3 +24,14 @@ Only draws this fault (repeatable). Only used with ``--fault``.
 
    opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 -r 60 --view 3d \
        --fault tests/data/SPE1CASE1/SPE1CASE1_FAULTS.INC --fault-name FAULT1
+
+``--fault-labels`` / ``--no-fault-labels``
+--------------------------------------------
+
+Labels each fault with its name (default), or draws the faults with no labels. Only used with
+``--fault``.
+
+.. code-block:: bash
+
+   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 -r 60 --view 3d \
+       --fault tests/data/SPE1CASE1/SPE1CASE1_FAULTS.INC --no-fault-labels

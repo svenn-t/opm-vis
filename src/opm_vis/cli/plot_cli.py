@@ -14,6 +14,7 @@ from opm_vis.cli.common import (
     DIFF_OPTIONS,
     GRID_ONLY_OPTIONS,
     KEYWORD_OPTION,
+    FAULT_LABELS_OPTION,
     FOLDER_OPTION,
     FONT_SCALE_OPTION,
     POLYGON_OPTIONS,
@@ -101,6 +102,7 @@ _ANIMATION_FOLDER = "mpl-gifs"
     help="Only draw this fault (repeatable). Only used with --fault. Without it, every fault "
     "crossing the slice is drawn.",
 )
+@FAULT_LABELS_OPTION
 @add_options(POLYGON_OPTIONS)
 @SHOW_EDGES_OPTION
 @FONT_SCALE_OPTION
@@ -134,6 +136,7 @@ def main(
     figsize: tuple[float, float] | None,
     fault_path: str | None,
     fault_names: tuple[str, ...],
+    fault_labels: bool,
     polygon_paths: tuple[str, ...],
     polygon_color: str,
     polygon_linewidth: float | None,
@@ -215,7 +218,7 @@ def main(
         )
 
     if fault_path is not None:
-        coll.plot_faults(fault_path, names=list(fault_names) or None)
+        coll.plot_faults(fault_path, names=list(fault_names) or None, labels=fault_labels)
     if polygon_paths:
         line_kwargs: dict[str, Any] = {}
         if polygon_linewidth is not None:
