@@ -136,6 +136,7 @@ def main(
     fault_names: tuple[str, ...],
     polygon_paths: tuple[str, ...],
     polygon_color: str,
+    polygon_linewidth: float | None,
     polygon_labels: tuple[str, ...],
     show_polygon_labels: bool,
     show_edges: bool,
@@ -216,8 +217,14 @@ def main(
     if fault_path is not None:
         coll.plot_faults(fault_path, names=list(fault_names) or None)
     if polygon_paths:
+        line_kwargs: dict[str, Any] = {}
+        if polygon_linewidth is not None:
+            line_kwargs["linewidth"] = polygon_linewidth
         coll.plot_polygons(
-            list(polygon_paths), labels=polygon_labels_value, color=polygon_color
+            list(polygon_paths),
+            labels=polygon_labels_value,
+            color=polygon_color,
+            **line_kwargs,
         )
 
     calc_end = None

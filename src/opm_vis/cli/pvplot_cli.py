@@ -1,7 +1,7 @@
 """opm-vis-pv: plot a keyword on a grid slice with the PyVista backend"""
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 import click
 from click.core import ParameterSource
@@ -481,6 +481,7 @@ def main(
     fault_names: tuple[str, ...],
     polygon_paths: tuple[str, ...],
     polygon_color: str,
+    polygon_linewidth: float | None,
     polygon_labels: tuple[str, ...],
     show_polygon_labels: bool,
     show_edges: bool,
@@ -652,11 +653,15 @@ def main(
         if polygon_paths:
             # A flat x,y outline at the top of the grid is only seen edge-on in a 2D view of an
             # i- or j-slice, so it is left out there
+            line_kwargs: dict[str, Any] = {}
+            if polygon_linewidth is not None:
+                line_kwargs["line_width"] = polygon_linewidth
             plotter.add_polygons(
                 list(polygon_paths),
                 outlines=not (view == "2d" and slices[0][0] != "k"),
                 labels=polygon_labels_value,
                 color=polygon_color,
+                **line_kwargs,
             )
 
         if view == "2d":

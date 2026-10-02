@@ -310,3 +310,13 @@ def test_plot_colorbar_label_replaces_the_generated_one(case1):
 
     colorbar_axes = coll.fig.axes[-1]
     assert colorbar_axes.get_ylabel() == "$k_x$ [mD]"
+
+
+def test_plot_polygons_linewidth_defaults_to_2_and_can_be_changed(case1, polygon_files):
+    default = SlicePoly2DCollection([case1], "k", 0)
+    default.plot_polygons(polygon_files["line"])
+    thick = SlicePoly2DCollection([case1], "k", 0)
+    thick.plot_polygons(polygon_files["line"], linewidth=6.0)
+
+    assert _line_collections(default.ax_)[0].get_linewidth()[0] == 2.0
+    assert _line_collections(thick.ax_)[0].get_linewidth()[0] == 6.0

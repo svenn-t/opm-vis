@@ -12,6 +12,7 @@ matplotlib.use("Agg")  # headless: never try to open a GUI window while saving
 from matplotlib.image import imread  # noqa: E402
 
 from opm_vis.cli.plot_cli import main  # noqa: E402
+from opm_vis.plot.collections import _SlicePolyCollection  # noqa: E402
 
 # The case1_dir and data_dir fixtures come from conftest.py.
 
@@ -1036,3 +1037,43 @@ def test_colorbar_label_misuse_is_rejected(case1_dir, runner, extra, message):
     assert result.exit_code != 0
     assert message in result.output
     assert "Traceback" not in result.output
+
+
+@pytest.mark.parametrize(("args", "expected"), [([], None), (["--polygon-linewidth", "6"], 6.0)])
+def test_polygon_linewidth_is_passed_on_only_when_given(
+    case1_dir, polygon_files, runner, tmp_path, monkeypatch, args, expected
+):
+    # Spy on the method, so the backend's own default width is untouched when the option is not
+    # given, rather than the CLI imposing one
+    seen = {}
+    original = _SlicePolyCollection.plot_polygons
+
+    def spy(self, *spy_args, **spy_kwargs):
+        seen.update(spy_kwargs)
+        return original(self, *spy_args, **spy_kwargs)
+
+    monkeypatch.setattr(_SlicePolyCollection, "plot_polygons", spy)
+    result = runner.invoke(
+        main,
+        [
+            "-f", case1_dir, "-K", "PERMX", "-k", "1", "--polygon", polygon_files["line"],
+            *args, "-sf", str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert seen.get("linewidth") == expected
+
+
+@pytest.mark.parametrize("width", ["0", "-2"])
+def test_polygon_linewidth_must_be_positive(case1_dir, polygon_files, runner, width):
+    result = runner.invoke(
+        main,
+        [
+            "-f", case1_dir, "-K", "PERMX", "-k", "1", "--polygon", polygon_files["line"],
+            "--polygon-linewidth", width,
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "--polygon-linewidth" in result.output

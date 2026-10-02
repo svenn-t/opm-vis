@@ -1643,3 +1643,11 @@ def test_set_scalars_scalar_bar_title_replaces_the_generated_one(plotter):
     plotter.set_scalars("PERMX", None, scalar_bar_title="$k_x$ [mD]")
 
     assert list(plotter.plotter.scalar_bars.keys()) == ["$k_x$ [mD]"]
+
+
+def test_add_polygons_line_width_defaults_to_3_and_can_be_changed(plotter, polygon_files):
+    plotter.add_polygons(polygon_files["line"], name="default")
+    plotter.add_polygons(polygon_files["line"], name="thin", line_width=1.0)
+
+    assert plotter._actors["default"].actor.prop.line_width == 3.0
+    assert plotter._actors["thin"].actor.prop.line_width == 1.0

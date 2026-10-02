@@ -47,6 +47,16 @@ Colour of the polygon lines and labels. Default: ``red``.
    opm-vis-pv -f tests/data/SPE1CASE1 -K PERMX -k 1 \
        --polygon tests/data/SPE1CASE1/SPE1CASE1_POLYGONS.geojson --polygon-color white
 
+``--polygon-linewidth``
+-------------------------
+
+Thickness of the polygon lines, in pixels. Default: 3.
+
+.. code-block:: bash
+
+   opm-vis-pv -f tests/data/SPE1CASE1 -K PERMX -k 1 \
+       --polygon tests/data/SPE1CASE1/SPE1CASE1_POLYGONS.geojson --polygon-linewidth 5
+
 ``--polygon-label``
 ---------------------
 

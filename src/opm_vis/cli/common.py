@@ -182,6 +182,14 @@ POLYGON_OPTIONS = [
         help="Colour of the --polygon lines and labels.",
     ),
     click.option(
+        "--polygon-linewidth",
+        type=click.FloatRange(min=0, min_open=True),
+        default=None,
+        metavar="WIDTH",
+        help="Line thickness of the --polygon lines: pixels in opm-vis-pv (default 3), points "
+        "in opm-vis-mpl (default 2).",
+    ),
+    click.option(
         "--polygon-label",
         "polygon_labels",
         multiple=True,
