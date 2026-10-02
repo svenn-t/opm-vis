@@ -18,6 +18,7 @@ from opm_vis.cli.common import (
     FONT_SCALE_OPTION,
     POLYGON_OPTIONS,
     RSTEP_OR_ANIMATE_OPTIONS,
+    SAVE_NAME_OPTION,
     SAVE_OPTION,
     SHOW_EDGES_OPTION,
     SLICE_OPTIONS,
@@ -266,6 +267,7 @@ def _wells_slices(
 @add_options(DIFF_OPTIONS)
 @add_options(CALCULATOR_OPTIONS)
 @SAVE_OPTION
+@SAVE_NAME_OPTION
 @save_folder_option(_FIGURE_FOLDER, _ANIMATION_FOLDER)
 @CMAP_OPTION
 @CLIM_OPTION
@@ -459,6 +461,7 @@ def main(
     calc_count: int | None,
     save: bool,
     save_folder: str | None,
+    save_name: str | None,
     cmap: str,
     clim: tuple[float, float] | None,
     view: str,
@@ -563,7 +566,7 @@ def main(
 
     with GridPlotter(
         resolve_paths(folders),
-        off_screen=wants_save(save, save_folder),
+        off_screen=wants_save(save, save_folder, save_name),
         window_size=window_size,
         z_scale=z_scale,
         font_scale=font_scale,
@@ -704,7 +707,7 @@ def main(
                     )
 
             output = None
-            if wants_save(save, save_folder):
+            if wants_save(save, save_folder, save_name):
                 output = save_path(
                     save_folder,
                     default_output_name(
@@ -719,6 +722,7 @@ def main(
                     ),
                     folders=folders,
                     default=_ANIMATION_FOLDER,
+                    save_name=save_name,
                 )
             plotter.animate(
                 keyword,
@@ -813,7 +817,7 @@ def main(
         if not no_title and actual_rstep is not None:
             plotter.set_title()
 
-        if not wants_save(save, save_folder):
+        if not wants_save(save, save_folder, save_name):
             shown = plotter.show(camera_overlay=True)
             if shown is not None:
                 click.echo(f"View: {shown.cli_options()}")
@@ -837,6 +841,7 @@ def main(
                 ),
                 folders=folders,
                 default=_FIGURE_FOLDER,
+                save_name=save_name,
             )
             plotter.screenshot(output)
 

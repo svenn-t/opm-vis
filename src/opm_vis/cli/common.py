@@ -94,6 +94,36 @@ SAVE_OPTION = click.option(
 
 
 
+
+def _check_save_name(_ctx: click.Context, _param: click.Parameter, value: str | None) -> str | None:
+    """
+    Reject a --save-name that is empty or holds a folder, which --save-folder picks instead
+    """
+    if value is None:
+        return None
+    if not value.strip():
+        raise click.BadParameter("must not be empty.")
+    if "/" in value or "\\" in value:
+        raise click.BadParameter(
+            f"is a file name, without a folder; got '{value}'. Use --save-folder for the folder."
+        )
+    return value
+
+
+# Given on its own, --save-name implies --save, the same way --save-folder does
+SAVE_NAME_OPTION = click.option(
+    "--save-name",
+    "-sn",
+    "save_name",
+    default=None,
+    metavar="NAME",
+    callback=_check_save_name,
+    help="File name to save to, without its suffix, which is added to match the format (e.g. "
+    ".png). Implies --save. The folder is --save-folder's. Default: a name generated from "
+    "what is being plotted.",
+)
+
+
 def save_folder_option(figure_folder: str, animation_folder: str | None = None) -> Callable:
     """
     Build the --save-folder option, whose default folder names differ per program
@@ -368,7 +398,7 @@ def add_options(options: Sequence[Callable]) -> Callable:
     return _add_options
 
 
-def wants_save(save: bool, save_folder: str | None) -> bool:
+def wants_save(save: bool, save_folder: str | None, save_name: str | None = None) -> bool:
     """
     Whether to save to a file rather than open an interactive window
 
@@ -378,17 +408,24 @@ def wants_save(save: bool, save_folder: str | None) -> bool:
         Value of --save
     save_folder : str | None
         Value of --save-folder, which implies --save
+    save_name : str | None, optional
+        Value of --save-name, which implies --save, by default None
 
     Returns
     -------
     bool
-        True if either was given
+        True if any of them was given
     """
-    return save or save_folder is not None
+    return save or save_folder is not None or save_name is not None
 
 
 def save_path(
-    save_folder: str | None, filename: str, *, folders: Sequence[str], default: str
+    save_folder: str | None,
+    filename: str,
+    *,
+    folders: Sequence[str],
+    default: str,
+    save_name: str | None = None,
 ) -> Path:
     """
     Path to save a figure or animation to, creating its folder if needed
@@ -404,11 +441,16 @@ def save_path(
         or inside the current folder if none was given
     default : str
         Default folder name, e.g. "pv-figs"
+    save_name : str | None, optional
+        Value of --save-name, used instead of filename's own name, with filename's suffix
+        (e.g. ".png") added unless it already ends with it; by default None, which keeps
+        filename
 
     Returns
     -------
     Path
-        save_folder/filename, or folders[0]/default/filename if save_folder is None
+        save_folder/filename, or folders[0]/default/filename if save_folder is None - with
+        save_name + filename's suffix as the file name if save_name is given
 
     Raises
     ------
@@ -429,6 +471,11 @@ def save_path(
             ) from exc
         click.echo(f"Created folder {folder}")
 
+    if save_name is not None:
+        suffix = Path(filename).suffix
+        # A name already ending in the right suffix (e.g. "sgas.png") is not given a second
+        # one. Case-sensitive, since PyVista only writes lower-case extensions.
+        filename = save_name if save_name.endswith(suffix) else save_name + suffix
     return folder / filename
 
 

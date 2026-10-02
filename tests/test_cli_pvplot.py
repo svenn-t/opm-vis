@@ -1736,3 +1736,44 @@ def test_interactive_window_prints_the_view_on_closing(case1_dir, runner, monkey
     fake_plotter.set_camera.assert_called_once_with(camera)
     fake_plotter.show.assert_called_once_with(camera_overlay=True)
     assert "View: --camera 1,2,3/4,5,6/0,0,1/7 --window-size 800 600" in result.output
+
+
+# ---------------------------------------------------------------------------
+# --save-name
+# ---------------------------------------------------------------------------
+
+
+def test_save_name_replaces_the_generated_name(case1_dir, offscreen, runner, tmp_path):
+    del offscreen
+    result = runner.invoke(main, ["-f", case1_dir, "-K", "SGAS", "-k", "1", "-r", "60", "-sn", "my plot", "-sf", str(tmp_path)])
+
+    assert result.exit_code == 0, result.output
+    assert [f.name for f in tmp_path.iterdir()] == ["my plot.png"]
+
+
+def test_save_name_already_ending_in_the_suffix_keeps_it_once(case1_dir, offscreen, runner, tmp_path):
+    del offscreen
+    result = runner.invoke(main, ["-f", case1_dir, "-K", "SGAS", "-k", "1", "-r", "60", "-sn", "plot.png", "-sf", str(tmp_path)])
+
+    assert result.exit_code == 0, result.output
+    assert [f.name for f in tmp_path.iterdir()] == ["plot.png"]
+
+
+def test_save_name_implies_save(data_dir, offscreen, runner, tmp_path):
+    del offscreen
+    # A writable copy of the case, since the default save folder goes inside -f/--folder
+    for source in (data_dir / "SPE1CASE1").glob("SPE1CASE1.*"):
+        shutil.copy(source, tmp_path / source.name)
+
+    result = runner.invoke(main, ["-f", str(tmp_path), "-K", "SGAS", "-k", "1", "-r", "60", "-sn", "plot"])
+
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / "pv-figs" / "plot.png").exists()
+
+
+@pytest.mark.parametrize(("name", "message"), [("out/plot", "without a folder"), ("", "empty")])
+def test_save_name_must_be_a_plain_file_name(case1_dir, runner, name, message):
+    result = runner.invoke(main, ["-f", case1_dir, "-K", "SGAS", "-k", "1", "-r", "60", "-sn", name])
+
+    assert result.exit_code != 0
+    assert message in result.output

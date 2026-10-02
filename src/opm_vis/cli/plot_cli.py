@@ -17,6 +17,7 @@ from opm_vis.cli.common import (
     FONT_SCALE_OPTION,
     POLYGON_OPTIONS,
     RSTEP_OR_ANIMATE_OPTIONS,
+    SAVE_NAME_OPTION,
     SAVE_OPTION,
     SHOW_EDGES_OPTION,
     SLICE_OPTIONS,
@@ -58,6 +59,7 @@ _ANIMATION_FOLDER = "mpl-gifs"
 @add_options(DIFF_OPTIONS)
 @add_options(CALCULATOR_OPTIONS)
 @SAVE_OPTION
+@SAVE_NAME_OPTION
 @save_folder_option(_FIGURE_FOLDER, _ANIMATION_FOLDER)
 @CMAP_OPTION
 @CLIM_OPTION
@@ -120,6 +122,7 @@ def main(
     calc_count: int | None,
     save: bool,
     save_folder: str | None,
+    save_name: str | None,
     cmap: str,
     clim: tuple[float, float] | None,
     view: str,
@@ -234,7 +237,7 @@ def main(
             **poly_kwargs,
         )
 
-        if not wants_save(save, save_folder):
+        if not wants_save(save, save_folder, save_name):
             coll.show()
         else:
             coll.save_gif(
@@ -252,6 +255,7 @@ def main(
                     ),
                     folders=folders,
                     default=_ANIMATION_FOLDER,
+                    save_name=save_name,
                 ),
                 fps=fps,
             )
@@ -262,7 +266,7 @@ def main(
         # pick, so plot_grid()/save_grid_plot() need none either.
         coll.plot_grid(**grid_color_kwargs(grid_color), **edge_kwargs)
 
-        if not wants_save(save, save_folder):
+        if not wants_save(save, save_folder, save_name):
             coll.show()
         else:
             coll.save_grid_plot(
@@ -271,6 +275,7 @@ def main(
                     default_output_name("GRID", slices, ext="png"),
                     folders=folders,
                     default=_FIGURE_FOLDER,
+                    save_name=save_name,
                 )
             )
         return
@@ -300,7 +305,7 @@ def main(
         **poly_kwargs,
     )
 
-    if not wants_save(save, save_folder):
+    if not wants_save(save, save_folder, save_name):
         coll.show()
     else:
         coll.save_plot(
@@ -318,6 +323,7 @@ def main(
                 ),
                 folders=folders,
                 default=_FIGURE_FOLDER,
+                save_name=save_name,
             )
         )
 

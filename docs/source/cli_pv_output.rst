@@ -15,6 +15,18 @@ says otherwise.
    opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 -r 60 --save
    opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 --animate --save
 
+``--save-name``, ``-sn``
+-------------------------
+
+File name to save to instead of the generated one, without its suffix: ``.png`` for an image or ``.gif`` for an animation is added
+to match the format, unless the name already ends with it. The folder is ``--save-folder``'s
+(or its default), so the name cannot hold a folder of its own. Giving it implies ``--save``.
+
+.. code-block:: bash
+
+   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 -r 60 -sn top_layer
+   opm-vis-pv -f tests/data/SPE1CASE1 -K SGAS -k 1 -r 60 -sf results -sn top_layer
+
 ``--save-folder``, ``-sf``
 ---------------------------
 

@@ -12,6 +12,7 @@ from opm_vis.cli.common import (
     COMMAND_SETTINGS,
     FOLDER_OPTION,
     FONT_SCALE_OPTION,
+    SAVE_NAME_OPTION,
     SAVE_OPTION,
     check_curve_option_count,
     check_figsize,
@@ -279,6 +280,7 @@ def _parse_xlim(raw: tuple[str, str] | None, x_axis: str) -> tuple[Any, Any] | N
     "write files.",
 )
 @SAVE_OPTION
+@SAVE_NAME_OPTION
 @save_folder_option(_FIGURE_FOLDER)
 @FONT_SCALE_OPTION
 @handle_errors
@@ -306,6 +308,7 @@ def main(
     export: str | None,
     save: bool,
     save_folder: str | None,
+    save_name: str | None,
     font_scale: float,
 ) -> None:
     """
@@ -401,7 +404,7 @@ def main(
         color=color,
     )
 
-    if not wants_save(save, save_folder):
+    if not wants_save(save, save_folder, save_name):
         plot.show()
     else:
         plot.save_plot(
@@ -410,6 +413,7 @@ def main(
                 default_summary_output_name(selected, x_axis=x_axis, compare=compare),
                 folders=folders,
                 default=_FIGURE_FOLDER,
+                save_name=save_name,
             )
         )
 

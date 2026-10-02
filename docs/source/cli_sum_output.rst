@@ -28,6 +28,18 @@ name:
 ``--subplots``, ``--layout`` and the axis limits are deliberately not part of the name: they
 change how the same data is laid out, not what it is.
 
+``--save-name``, ``-sn``
+-------------------------
+
+File name to save to instead of the generated one, without its suffix: ``.png`` is added
+to match the format, unless the name already ends with it. The folder is ``--save-folder``'s
+(or its default), so the name cannot hold a folder of its own. Giving it implies ``--save``.
+
+.. code-block:: bash
+
+   opm-vis-sum -f tests/data/SPE1CASE1 -K FOPR -sn top_layer
+   opm-vis-sum -f tests/data/SPE1CASE1 -K FOPR -sf results -sn top_layer
+
 ``--save-folder``, ``-sf``
 ---------------------------
 

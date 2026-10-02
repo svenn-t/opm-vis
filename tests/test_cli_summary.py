@@ -576,3 +576,41 @@ def test_font_scale_does_not_leak_into_later_plots(case1_dir, runner, tmp_path):
 
     assert result.exit_code == 0, result.output
     assert matplotlib.rcParams["font.size"] == before
+
+
+# ---------------------------------------------------------------------------
+# --save-name
+# ---------------------------------------------------------------------------
+
+
+def test_save_name_replaces_the_generated_name(case1_dir, runner, tmp_path):
+    result = runner.invoke(main, ["-f", case1_dir, "-K", "FOPR", "-sn", "my plot", "-sf", str(tmp_path)])
+
+    assert result.exit_code == 0, result.output
+    assert [f.name for f in tmp_path.iterdir()] == ["my plot.png"]
+
+
+def test_save_name_already_ending_in_the_suffix_keeps_it_once(case1_dir, runner, tmp_path):
+    result = runner.invoke(main, ["-f", case1_dir, "-K", "FOPR", "-sn", "plot.png", "-sf", str(tmp_path)])
+
+    assert result.exit_code == 0, result.output
+    assert [f.name for f in tmp_path.iterdir()] == ["plot.png"]
+
+
+def test_save_name_implies_save(data_dir, runner, tmp_path):
+    # A writable copy of the case, since the default save folder goes inside -f/--folder
+    for source in (data_dir / "SPE1CASE1").glob("SPE1CASE1.*"):
+        shutil.copy(source, tmp_path / source.name)
+
+    result = runner.invoke(main, ["-f", str(tmp_path), "-K", "FOPR", "-sn", "plot"])
+
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / "sum-figs" / "plot.png").exists()
+
+
+@pytest.mark.parametrize(("name", "message"), [("out/plot", "without a folder"), ("", "empty")])
+def test_save_name_must_be_a_plain_file_name(case1_dir, runner, name, message):
+    result = runner.invoke(main, ["-f", case1_dir, "-K", "FOPR", "-sn", name])
+
+    assert result.exit_code != 0
+    assert message in result.output
