@@ -25,7 +25,7 @@ from opm_vis.utils.calc import calc_label
 from opm_vis.utils.diff import diff_label
 from opm_vis.utils.fault import FaultReader
 from opm_vis.utils.polygons import read_polygons, warn_outside
-from opm_vis.utils.restart import Report
+from opm_vis.utils.restart import Report, Wells
 from opm_vis.utils.units import Label
 
 # An axis is switched from metres to km once its own span exceeds this, to keep tick labels
@@ -216,7 +216,26 @@ class _SlicePolyCollection:
         # Add polygon collection to matplotlib axes
         self.ax_.add_collection(polyc)
 
-    def plot_wells(self, rstep: int) -> None:
+    def _check_well_names(self, names: Sequence[str]) -> None:
+        """
+        Check that names are all wells in the case
+
+        Parameters
+        ----------
+        names : Sequence[str]
+            Well names to check
+
+        Raises
+        ------
+        KeyError
+            If a name is not a well in the case; the message lists the ones that are
+        """
+        # Every slice holds the same Wells object's worth of names, with the wells not on the
+        # slice emptied rather than removed. SlicePoly.wells is typed as the empty list it
+        # starts as, but is a Wells by the time a slice is built.
+        cast(Wells, self.slice_coll[0].wells).check_names(names)
+
+    def plot_wells(self, rstep: int, names: Sequence[str] | None = None) -> None:
         """
         Plot wells in slices (if any) for a report step
 
@@ -224,11 +243,24 @@ class _SlicePolyCollection:
         ----------
         rstep : int
             Report step
+        names : Sequence[str] | None, optional
+            Only plot wells with these names, by default None, which plots every well on the
+            slices
+
+        Raises
+        ------
+        KeyError
+            If a name in names is not a well in the case
         """
+        if names is not None:
+            self._check_well_names(names)
+
         # Loop over slices
         for slc in self.slice_coll:
             # Loop over all wells in slice and plot
             for name, well in slc.wells[rstep].items():
+                if names is not None and name not in names:
+                    continue
                 if well:
                     # Cell center coordinates of well
                     wcent = np.array(
@@ -473,6 +505,7 @@ class _SlicePolyCollection:
         calc_count: int | None = None,
         colorbar_label: str | None = None,
         title: bool = True,
+        well_names: Sequence[str] | None = None,
         **kwargs,
     ) -> None:
         """
@@ -513,6 +546,9 @@ class _SlicePolyCollection:
             "$k_x$ [mD]".
         title : bool, optional
             Put the report date in the figure title, by default True
+        well_names : Sequence[str] | None, optional
+            Only plot wells with these names, by default None, which plots every well on the
+            slices
         kwargs: optional
             Optional arguments passed to Poly3DCollection/PolyCollection
 
@@ -567,7 +603,7 @@ class _SlicePolyCollection:
         # Wells and the date title both come from the restart files, which a case with no
         # report steps does not have
         if rstep is not None:
-            self.plot_wells(rstep)
+            self.plot_wells(rstep, well_names)
 
             rdate = self.report.report_date(rstep)
             self.rdates.append(rdate)
@@ -660,6 +696,7 @@ class _SlicePolyCollection:
         calc_count: int | None = None,
         colorbar_label: str | None = None,
         title: bool = True,
+        well_names: Sequence[str] | None = None,
         **kwargs,
     ) -> None:
         """
@@ -697,6 +734,9 @@ class _SlicePolyCollection:
             "$k_x$ [mD]".
         title : bool, optional
             Put the report date in the figure title, by default True
+        well_names : Sequence[str] | None, optional
+            Only plot wells with these names, by default None, which plots every well on the
+            slices
         kwargs: optional
             Optional arguments passed to Poly3DCollection/PolyCollection
 
@@ -706,6 +746,10 @@ class _SlicePolyCollection:
         named for what it writes, not this method: this backend can only ever animate to a
         GIF, unlike opm_vis.pvplot's GridPlotter.animate which can also write a movie file.
         """
+        # Frames are only drawn when the animation is shown or saved, so check the names now
+        if well_names is not None:
+            self._check_well_names(well_names)
+
         # Which report steps and dates to include in the animation
         if rstep_list is not None:
             anim_rsteps = list(rstep_list)
@@ -752,6 +796,7 @@ class _SlicePolyCollection:
             equal_clim=False,
             polyc_dict=polyc_dict,
             title=title,
+            well_names=well_names,
             **kwargs,
         )
 

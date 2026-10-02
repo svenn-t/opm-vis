@@ -664,6 +664,7 @@ class GridPlotter:
         rstep: int,
         *,
         slices: Sequence[tuple[str, int]] | None = None,
+        names: Sequence[str] | None = None,
         labels: bool = True,
         open_color: str = "black",
         shut_color: str = "red",
@@ -680,6 +681,10 @@ class GridPlotter:
         slices : Sequence[tuple[str, int]] | None, optional
             Only draw wells with a completion on at least one of these (dim, index) i-, j- or
             k-slices, by default None, which draws every well in the grid
+        names : Sequence[str] | None, optional
+            Only draw wells with these names, by default None, which draws every well (subject
+            to slices). Combines with slices: a named well is drawn only if it also passes
+            that filter.
         labels : bool, optional
             Annotate each well with its name, by default True
         open_color : str, optional
@@ -698,11 +703,15 @@ class GridPlotter:
         truncation opm_vis.plot does. Calling this again for another report step replaces what
         is already there, which is what lets an animation follow wells opening and shutting.
         """
+        if names is not None:
+            self.case.wells.check_names(names)
+
         paths = well_paths(
             self.grid.egrid,
             self.case.wells,
             rstep,
             slices=slices,
+            names=names,
             apply_mapaxes=self.grid.apply_mapaxes,
         )
 
@@ -1713,6 +1722,7 @@ class GridPlotter:
         clim: tuple[float, float] | None = None,
         wells: bool = False,
         wells_slices: Sequence[tuple[str, int]] | None = None,
+        wells_names: Sequence[str] | None = None,
         vectors: bool = False,
         title: bool = True,
         diff_rstep: int | None = None,
@@ -1748,6 +1758,9 @@ class GridPlotter:
             Restrict wells to those with a completion on at least one of these (dim, index)
             slices, by default None, which draws every well in the grid. Only used when wells
             is True.
+        wells_names : Sequence[str] | None, optional
+            Only draw wells with these names, by default None, which draws every well. Only
+            used when wells is True; see add_wells.
         vectors : bool, optional
             Update every glyph actor each frame, by default False. Requires add_glyphs to have
             been called first; its scale factor is left untouched, so pass factor or
@@ -1788,6 +1801,10 @@ class GridPlotter:
                 "Nothing to animate! Call add_slice or add_grid before animate."
             )
 
+        # Checked up front, so a mistyped name does not leave a half-written file behind
+        if wells and wells_names is not None:
+            self.case.wells.check_names(wells_names)
+
         if rsteps is None:
             rsteps = self.case.report.report_steps()
         if clim is None:
@@ -1805,6 +1822,7 @@ class GridPlotter:
         frame_kwargs = {
             "wells": wells,
             "wells_slices": wells_slices,
+            "wells_names": wells_names,
             "vectors": vectors,
             "title": title,
             "diff_rstep": diff_rstep,
@@ -1829,6 +1847,7 @@ class GridPlotter:
         *,
         wells: bool,
         wells_slices: Sequence[tuple[str, int]] | None,
+        wells_names: Sequence[str] | None,
         vectors: bool,
         title: bool,
         **kwargs,
@@ -1849,6 +1868,8 @@ class GridPlotter:
         wells_slices : Sequence[tuple[str, int]] | None
             Restrict wells to those with a completion on at least one of these slices; see
             animate()
+        wells_names : Sequence[str] | None
+            Restrict wells to those with these names; see animate()
         vectors : bool
             Update every glyph actor at this report step
         title : bool
@@ -1864,7 +1885,7 @@ class GridPlotter:
         """
         self.set_scalars(keyword, rstep, clim=clim, **kwargs)
         if wells:
-            self.add_wells(rstep, slices=wells_slices)
+            self.add_wells(rstep, slices=wells_slices, names=wells_names)
         if vectors:
             self.set_vectors(rstep)
         if title:

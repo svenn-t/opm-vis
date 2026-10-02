@@ -1651,3 +1651,29 @@ def test_add_polygons_line_width_defaults_to_3_and_can_be_changed(plotter, polyg
 
     assert plotter._actors["default"].actor.prop.line_width == 3.0
     assert plotter._actors["thin"].actor.prop.line_width == 1.0
+
+
+def test_add_wells_names_draws_only_the_named_wells(plotter):
+    plotter.add_slice("k", 0)
+
+    plotter.add_wells(60, names=["PROD"])
+
+    assert plotter._actors["pvplot-wells-open"].mesh.n_cells == 1
+
+
+def test_add_wells_unknown_name_raises(plotter):
+    plotter.add_slice("k", 0)
+
+    with pytest.raises(KeyError, match="NOPE"):
+        plotter.add_wells(60, names=["NOPE"])
+
+
+def test_animate_checks_well_names_before_writing_anything(plotter, tmp_path):
+    plotter.add_slice("k", 0)
+    plotter.set_scalars("SGAS", 60)
+    output = tmp_path / "out.gif"
+
+    with pytest.raises(KeyError, match="NOPE"):
+        plotter.animate("SGAS", output, rsteps=[0, 60], wells=True, wells_names=["NOPE"])
+
+    assert not output.exists()

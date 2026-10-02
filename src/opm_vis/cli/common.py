@@ -162,6 +162,14 @@ def save_folder_option(figure_folder: str, animation_folder: str | None = None) 
     )
 
 
+WELL_NAME_OPTION = click.option(
+    "--well-name",
+    "well_names",
+    multiple=True,
+    metavar="NAME",
+    help="Only draw this well (repeatable). Without it, every well is drawn.",
+)
+
 FAULT_LABELS_OPTION = click.option(
     "--fault-labels/--no-fault-labels",
     "fault_labels",

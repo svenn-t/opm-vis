@@ -1883,3 +1883,73 @@ def test_fault_labels_can_be_turned_off(
 
     assert result.exit_code == 0, result.output
     assert seen["labels"] is expected
+
+
+# ---------------------------------------------------------------------------
+# --well-name
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [([], None), (["--well-name", "INJ"], ["INJ"]), (["--well-name", "INJ", "--well-name", "PROD"], ["INJ", "PROD"])],
+)
+def test_well_name_is_passed_on_only_when_given(
+    case1_dir, offscreen, runner, tmp_path, monkeypatch, args, expected
+):
+    del offscreen
+    seen = {}
+    original = GridPlotter.add_wells
+
+    def spy(self, *spy_args, **spy_kwargs):
+        seen.update(spy_kwargs)
+        return original(self, *spy_args, **spy_kwargs)
+
+    monkeypatch.setattr(GridPlotter, "add_wells", spy)
+    result = runner.invoke(
+        main,
+        ["-f", case1_dir, "-K", "SGAS", "-k", "1", "-r", "60", *args, "-sf", str(tmp_path)],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert seen.get("names") == expected
+
+
+def test_unknown_well_name_is_a_clean_error(case1_dir, offscreen, runner, tmp_path):
+    del offscreen
+    result = runner.invoke(
+        main,
+        [
+            "-f", case1_dir, "-K", "SGAS", "-k", "1", "-r", "60", "--well-name", "NOPE",
+            "-sf", str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "Unknown well name(s): NOPE. Wells in the case: INJ, PROD." in result.output
+    assert "Traceback" not in result.output
+
+
+def test_well_name_with_no_wells_is_rejected(case1_dir, runner):
+    result = runner.invoke(
+        main,
+        ["-f", case1_dir, "-K", "SGAS", "-k", "1", "-r", "60", "--no-wells", "--well-name", "INJ"],
+    )
+
+    assert result.exit_code != 0
+    assert "--well-name has no wells to select with --no-wells" in result.output
+
+
+def test_well_name_with_all_wells_draws_the_named_well_off_the_slice(
+    case1_dir, offscreen, runner, tmp_path
+):
+    del offscreen
+    result = runner.invoke(
+        main,
+        [
+            "-f", case1_dir, "-K", "SGAS", "-k", "1", "-r", "60", "--all-wells",
+            "--well-name", "PROD", "-sf", str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output

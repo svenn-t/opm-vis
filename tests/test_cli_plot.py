@@ -1132,3 +1132,46 @@ def test_no_title_leaves_the_title_out_of_the_saved_image(case1_dir, runner, tmp
     assert result.exit_code == 0, result.output
     # Saved with bbox_inches="tight", so a figure without a title is cropped shorter
     assert imread(untitled / "img.png").shape[0] < imread(titled / "img.png").shape[0]
+
+
+# ---------------------------------------------------------------------------
+# --well-name
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [([], None), (["--well-name", "INJ"], ["INJ"]), (["--well-name", "INJ", "--well-name", "PROD"], ["INJ", "PROD"])],
+)
+def test_well_name_is_passed_on_only_when_given(
+    case1_dir, runner, tmp_path, monkeypatch, args, expected
+):
+    seen = {}
+    original = _SlicePolyCollection.plot
+
+    def spy(self, *spy_args, **spy_kwargs):
+        seen.update(spy_kwargs)
+        return original(self, *spy_args, **spy_kwargs)
+
+    monkeypatch.setattr(_SlicePolyCollection, "plot", spy)
+    result = runner.invoke(
+        main,
+        ["-f", case1_dir, "-K", "SGAS", "-k", "1", "-r", "60", *args, "-sf", str(tmp_path)],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert seen.get("well_names") == expected
+
+
+def test_unknown_well_name_is_a_clean_error(case1_dir, runner, tmp_path):
+    result = runner.invoke(
+        main,
+        [
+            "-f", case1_dir, "-K", "SGAS", "-k", "1", "-r", "60", "--well-name", "NOPE",
+            "-sf", str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "Unknown well name(s): NOPE. Wells in the case: INJ, PROD." in result.output
+    assert "Traceback" not in result.output

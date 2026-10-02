@@ -23,6 +23,7 @@ from opm_vis.cli.common import (
     SAVE_OPTION,
     SHOW_EDGES_OPTION,
     SLICE_OPTIONS,
+    WELL_NAME_OPTION,
     add_options,
     check_colorbar_label,
     check_figsize,
@@ -104,6 +105,7 @@ _ANIMATION_FOLDER = "mpl-gifs"
     "crossing the slice is drawn.",
 )
 @FAULT_LABELS_OPTION
+@WELL_NAME_OPTION
 @add_options(POLYGON_OPTIONS)
 @SHOW_EDGES_OPTION
 @FONT_SCALE_OPTION
@@ -139,6 +141,7 @@ def main(
     fault_path: str | None,
     fault_names: tuple[str, ...],
     fault_labels: bool,
+    well_names: tuple[str, ...],
     polygon_paths: tuple[str, ...],
     polygon_color: str,
     polygon_linewidth: float | None,
@@ -253,6 +256,7 @@ def main(
             calc_count=calc_count,
             colorbar_label=colorbar_label,
             title=not no_title,
+            well_names=list(well_names) or None,
             **poly_kwargs,
         )
 
@@ -319,6 +323,7 @@ def main(
         colorbar=not no_colorbar,
         colorbar_label=colorbar_label,
         title=not no_title,
+        well_names=list(well_names) or None,
         diff_rstep=resolved_diff_rstep,
         diff_kind=diff_kind,
         calc_kind=calc_kind,

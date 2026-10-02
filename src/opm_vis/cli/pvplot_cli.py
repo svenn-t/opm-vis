@@ -24,6 +24,7 @@ from opm_vis.cli.common import (
     SAVE_OPTION,
     SHOW_EDGES_OPTION,
     SLICE_OPTIONS,
+    WELL_NAME_OPTION,
     add_options,
     check_colorbar_label,
     default_output_name,
@@ -338,6 +339,7 @@ def _wells_slices(
     "given.",
 )
 @FAULT_LABELS_OPTION
+@WELL_NAME_OPTION
 @add_options(POLYGON_OPTIONS)
 @SHOW_EDGES_OPTION
 @click.option(
@@ -482,6 +484,7 @@ def main(
     fault_path: str | None,
     fault_names: tuple[str, ...],
     fault_labels: bool,
+    well_names: tuple[str, ...],
     polygon_paths: tuple[str, ...],
     polygon_color: str,
     polygon_linewidth: float | None,
@@ -558,6 +561,8 @@ def main(
         )
     if fault_names and fault_path is None:
         raise click.UsageError("--fault-name needs --fault.")
+    if well_names and not (wells or all_wells):
+        raise click.UsageError("--well-name has no wells to select with --no-wells.")
     check_colorbar_label(colorbar_label, no_colorbar=no_colorbar, grid_only=grid_only)
     camera = _parse_camera(camera_text)
     polygon_labels_value = polygon_labels_arg(
@@ -748,6 +753,7 @@ def main(
                 clim=clim,
                 wells=wells or all_wells,
                 wells_slices=_wells_slices(all_wells, slices),
+                wells_names=list(well_names) or None,
                 vectors=glyphs is not None,
                 title=not no_title,
                 cmap=cmap,
@@ -810,7 +816,11 @@ def main(
                 calc_count=calc_count,
             )
         if (wells or all_wells) and actual_rstep is not None:
-            plotter.add_wells(actual_rstep, slices=_wells_slices(all_wells, slices))
+            plotter.add_wells(
+                actual_rstep,
+                slices=_wells_slices(all_wells, slices),
+                names=list(well_names) or None,
+            )
         if glyphs is not None:
             if actual_rstep is None:
                 raise click.UsageError(

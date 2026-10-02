@@ -339,3 +339,43 @@ def test_animate_title_can_be_turned_off(case1):
     coll.anim._draw_frame(60)  # pylint: disable=protected-access
 
     assert coll.fig._suptitle is None  # pylint: disable=protected-access
+
+
+def _well_texts(ax):
+    return sorted(t.get_text() for t in ax.texts)
+
+
+def test_plot_well_names_restricts_the_wells_drawn(case1):
+    # INJ is completed at k=0 only, PROD at k=2 only; an i- or j-slice through both would be
+    # needed to see both, so each is checked on its own layer
+    inj = SlicePoly2DCollection([case1], "k", 0)
+    inj.plot(60, "SGAS")
+    prod = SlicePoly2DCollection([case1], "k", 2)
+    prod.plot(60, "SGAS")
+    only_prod_named = SlicePoly2DCollection([case1], "k", 0)
+    only_prod_named.plot(60, "SGAS", well_names=["PROD"])
+
+    assert _well_texts(inj.ax_) == ["INJ"]
+    assert _well_texts(prod.ax_) == ["PROD"]
+    assert _well_texts(only_prod_named.ax_) == []
+
+
+def test_plot_well_names_keeps_a_named_well(case1):
+    coll = SlicePoly2DCollection([case1], "k", 0)
+    coll.plot(60, "SGAS", well_names=["INJ"])
+
+    assert _well_texts(coll.ax_) == ["INJ"]
+
+
+def test_plot_unknown_well_name_raises(case1):
+    coll = SlicePoly2DCollection([case1], "k", 0)
+
+    with pytest.raises(KeyError, match="NOPE"):
+        coll.plot(60, "SGAS", well_names=["NOPE"])
+
+
+def test_animate_checks_well_names_up_front(case1):
+    coll = SlicePoly2DCollection([case1], "k", 0)
+
+    with pytest.raises(KeyError, match="NOPE"):
+        coll.animate("SGAS", rstep_list=[0, 60], well_names=["NOPE"])

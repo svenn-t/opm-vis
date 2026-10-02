@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import datetime as dt
 import warnings
+from collections.abc import Iterable
 from typing import Any, Iterator
 
 import numpy as np
@@ -508,6 +509,9 @@ class Wells(_RestartFiles):
         # Call parent class __init__
         super().__init__(paths)
 
+        # Filled on first use by names()
+        self._names: list[str] | None = None
+
         # Organize well information for all report dates
         self._well_info_all_report_steps()
 
@@ -594,6 +598,41 @@ class Wells(_RestartFiles):
 
                 # Increase internal well_info index counter
                 ind += 1
+
+    def names(self) -> list[str]:
+        """
+        Names of every well at any report step
+
+        Returns
+        -------
+        list[str]
+            Sorted, without repeats. Includes wells that are only present at some report steps,
+            e.g. ones drilled later in the run
+        """
+        if self._names is None:
+            self._names = sorted({name for info in self._well_info for name in info})
+        return self._names
+
+    def check_names(self, names: Iterable[str]) -> None:
+        """
+        Check that names are all wells in the case
+
+        Parameters
+        ----------
+        names : Iterable[str]
+            Well names to check
+
+        Raises
+        ------
+        KeyError
+            If a name is not a well at any report step; the message lists the ones that are
+        """
+        unknown = [name for name in names if name not in self.names()]
+        if unknown:
+            raise KeyError(
+                f"Unknown well name(s): {', '.join(unknown)}. Wells in the case: "
+                f"{', '.join(self.names()) or 'none'}."
+            )
 
     def __getitem__(self, rstep: int) -> dict[str, list[Any]]:
         """
